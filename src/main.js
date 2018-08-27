@@ -1,11 +1,18 @@
-import test from './dep.js'
+import Dep from './dep.js'
 
-function Vue(options) {
-    this._init(options)
+function MiniVue(options) {
+    this.init(options)
 }
 
-Vue.prototype = {
-    _init(options) {
-        this._initData(options)
+MiniVue.prototype = {
+    init(options) {
+        this.initData(options)
+        this.initMethods(options)
+    },
+    initData(options) {
+        const vm = this
+        const _data = options.data
+        const data = typeof options.data === 'function'? _data() : _data
+
     }
 }
