@@ -16,7 +16,7 @@
     "webpack-cli": "^3.1.0"
   },
   "scripts": {
-    "dev": "webpack --config webpack.config.js"
+    "build": "webpack --config webpack.config.js"
   },
   "repository": {
     "type": "git",
