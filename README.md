@@ -27,3 +27,4 @@ Vue源码11000行 对于刚接触Vue的前端人员来说 阅读有点困难<br>
 2. v-bind:|: 
 3. v-on|@
 ```
+[学习Vue源码推荐看这篇文章](http://hcysun.me/vue-design/art/)
