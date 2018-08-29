@@ -1,10 +1,10 @@
-import Watcher from './watcher.js'
-
-let uid = 0
+// dep实例的ID
+let did = 0
+// Dep.target为watcher实例
 Dep.target = null
 
-export function Dep() {
-    this.id = uid++
+export default function Dep() {
+    this.id = did++
     this.subs = []    
 }
 

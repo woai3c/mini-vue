@@ -1,6 +1,7 @@
 import Dep from './dep.js'
 
-export function Observer(obj) {
+// 对数据进行监听
+export default function Observer(obj) {
     this.walk(obj)
 }
 
@@ -14,9 +15,9 @@ Observer.prototype = {
     }
 }
 
-export function defineReactive(obj, key, val) {
+function defineReactive(obj, key, val) {
     const dep = new Dep()
-
+    // 如果值是一个对象 递归监听
     if (typeof val === 'object') {
         new Observer(val)
     }
@@ -25,6 +26,7 @@ export function defineReactive(obj, key, val) {
         enumerable: true,
         configurable: true,
         get() {
+            // 收集对应的观察者对象
             if (Dep.target) {
                 dep.depend()
             }
@@ -35,10 +37,13 @@ export function defineReactive(obj, key, val) {
                 return
             }
             val = newVal
+            // 如果新值是对象 递归监听
             if (typeof val === 'object') {
                 new Observer(val)
             }
+            // 触发更新
             dep.notify()
         }
     })
 }
+
