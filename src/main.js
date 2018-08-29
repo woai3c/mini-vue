@@ -1,5 +1,6 @@
 import Observer from './observer.js'
 import Compile from './compile.js'
+import Watcher from './watcher.js'
 
 // MiniVue构造函数 参数是一个对象
 function MiniVue(options) {
@@ -17,11 +18,11 @@ MiniVue.prototype = {
     init() {
         this.initData()
         this.initMethods()
-
         // 监听数据
         new Observer(this._data)
         // 解析指令
         new Compile(this)
+        this.initWatch()
     },
 
     initData() {
@@ -47,6 +48,16 @@ MiniVue.prototype = {
         })
     },
 
+    initWatch() {
+        if (this.$options.watch) {
+            const watch = this.$options.watch
+            const keys = Object.keys(watch)
+            keys.forEach(key => {
+                this.$watch(key, watch[key])
+            })
+        }
+    },
+
     proxy(target, sourceKey, key) {
         const sharedPropertyDefinition = {
             enumerable: true,
@@ -61,6 +72,10 @@ MiniVue.prototype = {
             this[sourceKey][key] = val
         }
         Object.defineProperty(target, key, sharedPropertyDefinition)
+    },
+
+    $watch(variable, callback) {
+        new Watcher(this, variable, callback)
     }
 }
 
