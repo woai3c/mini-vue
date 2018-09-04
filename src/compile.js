@@ -1,4 +1,4 @@
-import handles from './handles.js'
+import handlers from './handlers.js'
 import Watcher from './watcher.js'
 
 
@@ -12,7 +12,7 @@ export default function Compile(vm) {
     this.braceRe1 = /{{\w+}}/g
     this.braceRe2 = /[{}]/g
     this.dirs = []
-    this.handles = handles
+    this.handlers = handlers
     this.init()
 }
 
@@ -28,15 +28,15 @@ Compile.prototype = {
         [...attrs].forEach(e => {
             if (this.onRe.test(e.name)) {
                 name = e.name.replace(this.onRe, '')
-                this.addDir(this.handles.on, name, e.name, e.value, el)
+                this.addDir(this.handlers.on, name, e.name, e.value, el)
             } else if (this.bindRe.test(e.name)) {
                 // 类似:bind="name" 解析完后将原本的值删掉
                 el.removeAttribute(e.name.split('=')[0])
                 name = e.name.replace(this.bindRe, '')
-                this.addDir(this.handles.bind, name, e.name, e.value, el)
+                this.addDir(this.handlers.bind, name, e.name, e.value, el)
             } else if (this.modelRe.test(e.name)) {
                 name = e.name.replace(this.modelRe, '')
-                this.addDir(this.handles.model, name, e.name, e.value, el)
+                this.addDir(this.handlers.model, name, e.name, e.value, el)
             }
         })
 
@@ -75,8 +75,8 @@ Compile.prototype = {
         const that = this
         this.dirs.forEach(e => {
             const handle = e.handle
-            if (handle.implement) {
-                handle.implement(e.vm, e.el, e.dirName, e.expOrFn)
+            if (handle.bind) {
+                handle.bind(e.vm, e.el, e.dirName, e.expOrFn)
             } 
             const update = function(newVal, oldVal) {
                 handle.update(e.vm, e.el, e.expOrFn, newVal, oldVal)
@@ -84,20 +84,48 @@ Compile.prototype = {
             // 在这里开始创建观察者实例 将监听的值变化时 触发update回调函数
             new Watcher(this.vm, e.expOrFn, update)
         })
-        const handles = this.handles.textNode
+        const handlers = this.handlers.textNode
 
         vm._textNodes.forEach(e => {
             let arry = e.nodeValue.match(this.braceRe1)
             let rawValue = e.nodeValue
             arry.forEach(str => {
                 let variable = str.replace(this.braceRe2, '')
-                handles.implement(vm, e, variable)
+                handlers.bind(vm, e, variable)
                 const update = function(newVal, oldVal) {
-                    handles.update(vm, newVal, oldVal, e, variable, rawValue, that.braceRe1, that.braceRe2)
+                    handlers.update(vm, newVal, oldVal, e, variable, rawValue, that.braceRe1, that.braceRe2)
                 }
                 // 监听文本节点 在这里开始创建观察者实例 将监听的值变化时 触发update回调函数
                 new Watcher(vm, variable, update)
             })
         })
     }
+}
+
+function compile(el, options) {
+    compileNode(el, options)
+    if (el.hasChildNodes()) {
+        compileNodeList(el.childNodes, options)
+    }
+}
+
+function compileNode(nodes, options) {
+
+}
+
+
+function compileNodeList() {
+    
+}
+
+function compileElement(node, options) {
+
+}
+
+function compileTextNode(node, options) {
+
+}
+
+function parseText(text) {
+
 }

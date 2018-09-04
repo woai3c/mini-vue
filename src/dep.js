@@ -1,10 +1,10 @@
 // dep实例的ID
-let did = 0
+let uid = 0
 // Dep.target为watcher实例
 Dep.target = null
 
 export default function Dep() {
-    this.id = did++
+    this.id = uid++
     this.subs = []    
 }
 

@@ -1,7 +1,7 @@
 // 针对各种指令的回调函数
 export default {
     on: {
-        implement(vm, el, name, expOrFn) {
+        bind(vm, el, name, expOrFn) {
             el['on' + name] = vm[expOrFn].bind(vm)
         },
         update(vm, el, expOrFn, newVal, oldVal) {
@@ -9,7 +9,7 @@ export default {
         }
     },
     bind: {
-        implement(vm, el, name, expOrFn) {
+        bind(vm, el, name, expOrFn) {
             el.setAttribute(expOrFn, vm[expOrFn])
         }, 
         update(vm, el, expOrFn, newVal, oldVal) {
@@ -17,7 +17,7 @@ export default {
         }
     },
     model: {
-        implement(vm, el, name, expOrFn) {
+        bind(vm, el, name, expOrFn) {
             el.value = vm[expOrFn]
             el.oninput = function() {
                 vm[expOrFn] = this.value
@@ -28,7 +28,7 @@ export default {
         }
     },
     textNode: {
-        implement(vm, textNode, variable) {
+        bind(vm, textNode, variable) {
             textNode.nodeValue = textNode.nodeValue.replace(`{{${variable}}}`, vm[variable])
         },  
         update(vm, newVal, oldVal, textNode, variable, rawValue, re1, re2) {

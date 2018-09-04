@@ -1,6 +1,5 @@
 import Dep from './dep.js'
 
-
 // watcher实例的ID 每个watcher实现的ID都是唯一的
 let uid = 0
 
@@ -46,11 +45,11 @@ Watcher.prototype = {
         // 触发更新后执行回调函数
         const value = this.get()
         const oldValue = this.value
+        this.value = value
 
         if (value !== oldValue) {
             this.cb.call(this.vm, value, oldValue)
         }
-        this.value = value
     },
 
     addDep(dep) {

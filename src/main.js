@@ -1,6 +1,7 @@
 import Observer from './observer.js'
 import Compile from './compile.js'
 import Watcher from './watcher.js'
+import {toArray} from './utils.js'
 
 // MiniVue构造函数 参数是一个对象
 function MiniVue(options) {
@@ -8,6 +9,10 @@ function MiniVue(options) {
     this._watchers = []
     // 存放文本节点 在compile上会用到
     this._textNodes = []
+    // 存放事件
+    this._events = {}
+    // 存放指令
+    this._directives = {}
     this.$options = options
     this.init()
 }
@@ -76,6 +81,56 @@ MiniVue.prototype = {
 
     $watch(variable, callback) {
         new Watcher(this, variable, callback)
+    },
+
+    $on(event, fn) {
+        (this._events[event] || (this._events[event] = [])).push(fn)
+    },
+
+    $off(event, fn) {
+        const cbs = this._events[event]
+        if (!fn) {
+            cbs.length = 0
+            return
+        }
+        let l = cbs.length
+        while (l--) {
+            let cb = cbs[l]
+            if (cb === fn) {
+                cbs.splice(l, 1)
+            }
+        }
+    },
+
+    $emit(event) {
+        const cbs = this._events[event]
+        const args = toArray(arguments, 1)
+        if (!cbs) {
+            this._events[event] = []
+            return
+        }
+        if (args.length > 1) {
+            cbs.forEach(cb => {
+                cb.apply(this, args)
+            })
+        } else {
+            cbs.forEach(cb => {
+                cb.call(this, args[0])
+            })
+        }
+    },
+
+    $once(event, fn) {
+        const vm = this
+        function on() {
+            vm.$off(event, on)
+            fn.apply(this, arguments)
+        }
+        this.$on(event, on)
+    }
+
+    bindDir(descriptor, node, host, scope, frag) {
+        this._directives.push(new Directive(descriptor, this, node, host, scope, frag))
     }
 }
 
