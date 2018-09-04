@@ -1,131 +1,150 @@
 import handlers from './handlers.js'
-import Watcher from './watcher.js'
+import {toArray, replace} from './utils.js'
 
+const onRe = /^(v-on:|@)/
+const dirAttrRE = /^v-([^:]+)(?:$|:(.*)$)/
+const bindRe = /^(v-bind:|:)/
+const tagRE = /\{\{\{((?:.|\n)+?)\}\}\}|\{\{((?:.|\n)+?)\}\}/g
+const dirs = []
 
-// 指令解析器
-export default function Compile(vm) {
-    this.el = vm.$el
-    this.vm = vm
-    this.onRe = /^(v-on:|@)/
-    this.modelRe = /^v-model/
-    this.bindRe = /^(v-bind:|:)/
-    this.braceRe1 = /{{\w+}}/g
-    this.braceRe2 = /[{}]/g
-    this.dirs = []
-    this.handlers = handlers
-    this.init()
-}
-
-Compile.prototype = {
-    init() {
-        this.parse(this.el)
-        this.render()
-    },
-
-    parse(el) {
-        const attrs = el.attributes
-        let name
-        [...attrs].forEach(e => {
-            if (this.onRe.test(e.name)) {
-                name = e.name.replace(this.onRe, '')
-                this.addDir(this.handlers.on, name, e.name, e.value, el)
-            } else if (this.bindRe.test(e.name)) {
-                // 类似:bind="name" 解析完后将原本的值删掉
-                el.removeAttribute(e.name.split('=')[0])
-                name = e.name.replace(this.bindRe, '')
-                this.addDir(this.handlers.bind, name, e.name, e.value, el)
-            } else if (this.modelRe.test(e.name)) {
-                name = e.name.replace(this.modelRe, '')
-                this.addDir(this.handlers.model, name, e.name, e.value, el)
-            }
-        })
-
-        const children = el.childNodes
-        if (children.length > 0) {
-            children.forEach(ele => {
-                switch(ele.nodeType) {
-                    // 元素节点
-                    case 1: 
-                        this.parse(ele)
-                        break
-                    // 文本节点
-                    case 3: 
-                        if (this.braceRe1.test(ele.nodeValue)) {
-                            this.vm._textNodes.push(ele)
-                        }
-                        break
-                }
-            })
-        }
-    },
-
-    addDir(handle, dirName, name, value, el) {
-        this.dirs.push({
-            vm: this.vm,
-            dirName,
-            handle,
-            rawName: name,
-            expOrFn: value,
-            el
-        })
-    },
-
-    render() {
-        const vm = this.vm
-        const that = this
-        this.dirs.forEach(e => {
-            const handle = e.handle
-            if (handle.bind) {
-                handle.bind(e.vm, e.el, e.dirName, e.expOrFn)
-            } 
-            const update = function(newVal, oldVal) {
-                handle.update(e.vm, e.el, e.expOrFn, newVal, oldVal)
-            }
-            // 在这里开始创建观察者实例 将监听的值变化时 触发update回调函数
-            new Watcher(this.vm, e.expOrFn, update)
-        })
-        const handlers = this.handlers.textNode
-
-        vm._textNodes.forEach(e => {
-            let arry = e.nodeValue.match(this.braceRe1)
-            let rawValue = e.nodeValue
-            arry.forEach(str => {
-                let variable = str.replace(this.braceRe2, '')
-                handlers.bind(vm, e, variable)
-                const update = function(newVal, oldVal) {
-                    handlers.update(vm, newVal, oldVal, e, variable, rawValue, that.braceRe1, that.braceRe2)
-                }
-                // 监听文本节点 在这里开始创建观察者实例 将监听的值变化时 触发update回调函数
-                new Watcher(vm, variable, update)
-            })
-        })
-    }
-}
-
-function compile(el, options) {
-    compileNode(el, options)
+export default function compile(vm, el) {
+    compileNode(vm, el)
     if (el.hasChildNodes()) {
-        compileNodeList(el.childNodes, options)
+        compileNodeList(el.childNodes)
+    }
+    dirs.forEach(dir => {
+        vm.bindDir(dir)
+    })
+
+    vm._directives.forEach(dir => {
+        dir._bind()
+    })
+}
+
+function compileNode(node) {
+    const type = node.nodeType
+    if (type == 1) {
+        compileElement(node)
+    } else if (type == 3) {
+        compileTextNode(node)
     }
 }
 
-function compileNode(nodes, options) {
 
+function compileNodeList(nodes) {
+    nodes.forEach(node => {
+        compileNode(node)
+        if (node.hasChildNodes()) {
+            compileNodeList(node.childNodes)
+        }
+    })
 }
 
-
-function compileNodeList() {
-    
+function compileElement(node) {
+    if (node.hasAttributes()) {
+        let matched
+        const attrs = toArray(node.attributes)
+        attrs.forEach((attr) => {
+            const name = attr.name.trim()
+            const value = attr.value.trim()
+            if (onRe.test(name)) {
+                node.removeAttribute(name)
+                dirs.push({
+                    el: node,
+                    arg: name.replace(onRe, ''),
+                    name: 'on',
+                    attr: name,
+                    expression: value,
+                    def: handlers.on
+                })
+            } else if (bindRe.test(name)) {
+                handlers[matched[1]]
+                node.removeAttribute(name)
+                dirs.push({
+                    el: node,
+                    arg: name.replace(bindRe, ''),
+                    name: 'bind',
+                    attr: name,
+                    expression: value,
+                    def: handlers.bind
+                })
+            } else if (matched = name.match(dirAttrRE)) {
+                dirs.push({
+                    el: node,
+                    arg: undefined,
+                    name: name.replace(/^v-/, ''),
+                    attr: name,
+                    expression: value,
+                    def: handlers[matched[1]]
+                })
+            }
+        })
+    }
 }
 
-function compileElement(node, options) {
+function compileTextNode(node) {
+    const tokens = parseText(node.wholeText)
+    if (!tokens) {
+        return
+    }
 
-}
+    const frag = document.createDocumentFragment()
+    let el
+    tokens.forEach(token => {
+        el = token.tag ? processTextToken(token, node) : document.createTextNode(token.value)
+        frag.appendChild(el)
 
-function compileTextNode(node, options) {
+        if (token.tag) {
+            dirs.push(token.descriptor)
+        }
+    })
 
+    replace(node, frag)
 }
 
 function parseText(text) {
+    let index = 0
+    let lastIndex = 0
+    let match
+    const tokens = []
 
+    while (match = tagRE.exec(text)) {
+        index = match.index
+
+        if (index > lastIndex) {
+            tokens.push({
+                value: text.slice(lastIndex, index),
+            })
+        }
+
+        tokens.push({
+            value: match[2],
+            tag: true
+        })
+
+        lastIndex = index + match[0].length
+    }
+
+    if (lastIndex < text.length) {
+        tokens.push({
+            value: text.slice(lastIndex)
+        })
+    }
+    return tokens
+}
+
+function processTextToken(token) {
+    const el = document.createTextNode(' ')
+    if (token.descriptor) {
+        return
+    }
+
+    token.descriptor = {
+        el,
+        name: 'text',
+        def: handlers.text,
+        expression: token.value.trim()
+    }
+
+    return el
 }

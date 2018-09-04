@@ -15,9 +15,15 @@ export default function Watcher(vm, expOrFn, callback) {
     // 更新触发回调函数
     this.cb = callback
 
-    this.getter = () => vm[expOrFn]
-    this.setter = (val) => {
-        vm[expOrFn] = val
+    if (typeof expOrFn === 'function') {    
+        this.getter = expOrFn
+        this.setter = undefined
+    } else {
+        const res = parseExpression(expOrFn)
+        this.getter = res.get
+        this.setter = (value) => {
+            vm[expOrFn] = value
+        }
     }
     // 在创建watcher实例时先取一次值
     this.value = this.get()
@@ -27,14 +33,14 @@ Watcher.prototype = {
     get() {
         // 在读取值时先将观察者对象赋值给Dep.target 否则Dep.target为空 不会触发收集依赖
         Dep.target = this
-        const value = this.getter()
+        const value = this.getter.call(this.vm, this.vm)
         // 触发依赖后置为空
         Dep.target = null
         return value
     },
 
-    set(val) {
-        this.setter(val)
+    set(value) {
+        this.setter.call(this.vm, value)
     },
 
     update() {
@@ -63,4 +69,12 @@ Watcher.prototype = {
             dep.addSub(this)
         }
     }
+}
+
+function parseExpression(exp) {
+    exp = exp.trim()
+    const res = {exp}
+    res.get = new Function('vm', 'return ' + 'vm.' + exp)
+    res.set = function() {}
+    return res
 }

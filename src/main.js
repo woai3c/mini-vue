@@ -1,7 +1,8 @@
 import Observer from './observer.js'
-import Compile from './compile.js'
 import Watcher from './watcher.js'
 import {toArray} from './utils.js'
+import Directive from './directives.js'
+import compile from './compile.js'
 
 // MiniVue构造函数 参数是一个对象
 function MiniVue(options) {
@@ -12,7 +13,7 @@ function MiniVue(options) {
     // 存放事件
     this._events = {}
     // 存放指令
-    this._directives = {}
+    this._directives = []
     this.$options = options
     this.init()
 }
@@ -25,8 +26,7 @@ MiniVue.prototype = {
         this.initMethods()
         // 监听数据
         new Observer(this._data)
-        // 解析指令
-        new Compile(this)
+        this._compile()
         this.initWatch()
     },
 
@@ -79,8 +79,8 @@ MiniVue.prototype = {
         Object.defineProperty(target, key, sharedPropertyDefinition)
     },
 
-    $watch(variable, callback) {
-        new Watcher(this, variable, callback)
+    $watch(expOrFn, callback) {
+        new Watcher(this, expOrFn, callback)
     },
 
     $on(event, fn) {
@@ -127,10 +127,14 @@ MiniVue.prototype = {
             fn.apply(this, arguments)
         }
         this.$on(event, on)
-    }
+    },
 
-    bindDir(descriptor, node, host, scope, frag) {
-        this._directives.push(new Directive(descriptor, this, node, host, scope, frag))
+    bindDir(descriptor) {
+        this._directives.push(new Directive(descriptor, this))
+    },
+
+    _compile() {
+        compile(this, this.$el)
     }
 }
 

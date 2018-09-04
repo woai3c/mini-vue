@@ -7,10 +7,10 @@
 </html>
 <body>
    <div id="app" test="1">
-        <p>姓名：{{name}}</p>
+        <p>姓名：{{obj.a.msg}}</p>
         <p>年龄：{{age}}</p>
         <button @click="increase">年龄+1</button>
-        <input v-model="age" :bind="name">
+        <input v-model="age" :name="name">
         <button @click="sayHi">sayHi</button>
     </div>
 </body>
@@ -21,19 +21,23 @@
             age: 18,
             name: '小明',
             obj: {
-                a:1
+                a: {
+                    msg: 'abc'
+                }
             }
         },
         methods: {
-            increase() {
-                this.age++
+            increase(a, b, c) {
+                console.log(this)
             },
             sayHi() {
-                alert('hi')
+                console.log(this)
             }
         },
         watch: {
             age() {
+                this.increase(1, 2, 3)
+                this.sayHi()
                 console.log('年龄变成了' + this.age)
             }
         }

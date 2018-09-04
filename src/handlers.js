@@ -1,47 +1,115 @@
-// 针对各种指令的回调函数
-export default {
-    on: {
-        bind(vm, el, name, expOrFn) {
-            el['on' + name] = vm[expOrFn].bind(vm)
+import {on, off, bind} from './utils.js'
+
+const handlers = {
+    text: {
+        bind() {
+            const self = this
+            this.listener = function() {
+                self.set(this.value)
+            }
+            on(this.el, 'input', this.listener)
         },
-        update(vm, el, expOrFn, newVal, oldVal) {
+
+        update(value) {
+            this.el.value = value
+        },
+
+        unbind() {
+            off(this.el, 'input', this.listener)
+        }
+    },
+
+    select: {
+        bind() {
+
+        },
+
+        update() {
 
         }
     },
+
+    radio: {
+        bind() {
+
+        },
+
+        update() {
+
+        }
+    },
+
+    checkbox: {
+        bind() {
+
+        },
+
+        update() {
+
+        }
+    }
+}
+
+// 针对各种指令的回调函数
+export default {
+    text: {
+        bind() {
+            this.attr = this.el.nodeType === 3 ? 'data' : 'textContent'
+        },
+
+        update(value) {
+            this.el[this.attr] = value
+        }
+    },
+
+    on: {
+        update(handler) {
+            if (this.handler) {
+                off(this.el, this.descriptor.arg, this.handler)
+            }
+            this.handler = handler
+            on(this.el, this.descriptor.arg, this.handler)
+        },
+
+        unbind() {
+            if (this.handler) {
+                off(this.el, this.descriptor.arg, this.handler)
+            }
+        }
+    },
+
     bind: {
-        bind(vm, el, name, expOrFn) {
-            el.setAttribute(expOrFn, vm[expOrFn])
-        }, 
-        update(vm, el, expOrFn, newVal, oldVal) {
-            el.setAttribute(expOrFn, newVal)
+        bind() {
+            this.attr = this.descriptor.arg
+        },
+
+        update(value) {
+            this.el.setAttribute(this.attr, value)
         }
     },
+
     model: {
-        bind(vm, el, name, expOrFn) {
-            el.value = vm[expOrFn]
-            el.oninput = function() {
-                vm[expOrFn] = this.value
+        bind() {
+            const el = this.el
+            const tag = el.tagName
+            let handler
+
+            switch (tag) {
+                case 'INPUT':
+                    handler = handlers[el.type] || handlers.text
+                    break
+                case 'TEXTAREA':
+                    handler = handlers.text
+                    break
+                case 'SELECT':
+                    handler = handlers.select
+                    break
+                default:
+                    return
             }
-        },  
-        update(vm, el, expOrFn, newVal, oldVal) {
-            el.value = newVal
-        }
-    },
-    textNode: {
-        bind(vm, textNode, variable) {
-            textNode.nodeValue = textNode.nodeValue.replace(`{{${variable}}}`, vm[variable])
-        },  
-        update(vm, newVal, oldVal, textNode, variable, rawValue, re1, re2) {
-            textNode.nodeValue = rawValue.replace(`{{${variable}}}`, newVal)
-            let str = textNode.nodeValue
-            if (re1.test(str)) {
-                let arry = str.match(re1)
-                arry.forEach(e => {
-                    let variable = e.replace(re2, '')
-                    str = str.replace(e, vm[variable])
-                })
-                textNode.nodeValue = str
-            }
+
+            handler.bind.call(this)
+            this.update = handler.update
         }
     }
 }
