@@ -7,11 +7,43 @@
 </html>
 <body>
    <div id="app" test="1">
-        <p>姓名：{{obj.a.msg}}</p>
+        <p>姓名：{{name}}</p>
         <p>年龄：{{age}}</p>
+        <p>地址: {{address}}</p>
         <button @click="increase">年龄+1</button>
         <input v-model="age" :name="name">
+        <textarea v-model="select"></textarea>
+        <select multiple="multiple" v-model="select">
+            <option value="v1">0</option>
+            <option value="v2">1</option>
+            <option value="v3">2</option>
+            <option value="v4">3</option>
+        </select>
         <button @click="sayHi">sayHi</button>
+
+        <label>
+            <input type="radio" name="good" value="r1" v-model="pick">
+            test1
+        </label>
+        <label>
+            <input type="radio" name="good" value="r2" v-model="pick">
+            test2
+        </label>
+        <label>
+            <input type="radio" name="good" value="r3" v-model="pick">
+            test3
+        </label>
+        <input v-model="pick">
+
+
+        <input type="checkbox" id="jack" value="Jack" v-model="checkedNames">
+        <label for="jack">c1</label>
+        <input type="checkbox" id="john" value="John" v-model="checkedNames">
+        <label for="john">c2</label>
+        <input type="checkbox" id="mike" value="Mike" v-model="checkedNames">
+        <label for="mike">c3</label>
+        <br>
+        <span>Checked names: {{ checkedNames }}</span>
     </div>
 </body>
 <script>
@@ -19,25 +51,27 @@
         el: '#app',
         data: {
             age: 18,
-            name: '小明',
+            name: '小马',
             obj: {
                 a: {
                     msg: 'abc'
                 }
-            }
+            },
+            select: ['v1', 2, 3, 4],
+            pick: '',
+            checkedNames: [],
+            address: ['中国', '四川', '成都']
         },
         methods: {
-            increase(a, b, c) {
-                console.log(this)
+            increase() {
+                this.age++
             },
             sayHi() {
-                console.log(this)
+                console.log('hi')
             }
         },
         watch: {
             age() {
-                this.increase(1, 2, 3)
-                this.sayHi()
                 console.log('年龄变成了' + this.age)
             }
         }

@@ -33,3 +33,20 @@ export function bind(fn, ctx) {
         return l ? l > 1 ? fn.apply(ctx, arguments) : fn.call(ctx, a) : fn.call(ctx)
     }
 }
+
+export function def(obj, key, val, enumerable) {
+    Object.defineProperty(obj, key, {
+        value: val,
+        enumerable: !!enumerable,
+        writable: true,
+        configurable: true
+    })
+}
+
+export function hasOwn(obj, key) {
+    return hasOwnProperty.call(obj, key)
+}
+
+export function isObject(obj) {
+    return obj !== null && typeof obj === 'object'
+}

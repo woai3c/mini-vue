@@ -69,6 +69,7 @@ function compileElement(node) {
                     def: handlers.bind
                 })
             } else if (matched = name.match(dirAttrRE)) {
+                node.removeAttribute(name)
                 dirs.push({
                     el: node,
                     arg: undefined,

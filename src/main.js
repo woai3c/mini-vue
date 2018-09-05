@@ -1,4 +1,4 @@
-import Observer from './observer.js'
+import observe from './observer.js'
 import Watcher from './watcher.js'
 import {toArray} from './utils.js'
 import Directive from './directives.js'
@@ -25,7 +25,7 @@ MiniVue.prototype = {
         this.initData()
         this.initMethods()
         // 监听数据
-        new Observer(this._data)
+        observe(this._data)
         this._compile()
         this.initWatch()
     },

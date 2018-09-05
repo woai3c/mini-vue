@@ -1,4 +1,5 @@
 import Dep from './dep.js'
+import {isObject} from './utils.js'
 
 // watcher实例的ID 每个watcher实现的ID都是唯一的
 let uid = 0
@@ -7,7 +8,8 @@ let uid = 0
 export default function Watcher(vm, expOrFn, callback) {
     vm._watchers.push(this) 
     this.id = uid++
-    this.vm = vm   
+    this.vm = vm
+    this.expression = expOrFn   
     // 存放dep实例
     this.deps = []
     // 存放dep的ID
@@ -34,6 +36,7 @@ Watcher.prototype = {
         // 在读取值时先将观察者对象赋值给Dep.target 否则Dep.target为空 不会触发收集依赖
         Dep.target = this
         const value = this.getter.call(this.vm, this.vm)
+        console.log(value)
         // 触发依赖后置为空
         Dep.target = null
         return value
@@ -52,8 +55,7 @@ Watcher.prototype = {
         const value = this.get()
         const oldValue = this.value
         this.value = value
-
-        if (value !== oldValue) {
+        if (value !== oldValue || isObject(value)) {
             this.cb.call(this.vm, value, oldValue)
         }
     },
@@ -75,6 +77,5 @@ function parseExpression(exp) {
     exp = exp.trim()
     const res = {exp}
     res.get = new Function('vm', 'return ' + 'vm.' + exp)
-    res.set = function() {}
     return res
 }
