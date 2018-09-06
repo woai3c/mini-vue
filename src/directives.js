@@ -11,7 +11,6 @@ export default function Directive(descriptor, vm) {
 Directive.prototype = {
     _bind() {
         var def = this.descriptor.def
-
         if (typeof def === 'function') {
             this.update = def
         } else {

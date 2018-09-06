@@ -6,7 +6,7 @@
 </head>
 </html>
 <body>
-   <div id="app" test="1">
+   <div id="app" test>
         <p>姓名：{{name}}</p>
         <p>年龄：{{age}}</p>
         <p>地址: {{address}}</p>
@@ -44,6 +44,20 @@
         <label for="mike">c3</label>
         <br>
         <span>Checked names: {{ checkedNames }}</span>
+
+        <p v-text="name"></p>
+        <p v-html="html"></p>
+        <p v-show="show">这是一个v-show示例</p>
+
+        <p v-if="if" el=1>{{address[0]}}</p>
+        <p v-else el=2>{{address[1]}}</p> 
+
+        <ul id="for">
+            <li v-for="item in address">
+                {{item}}
+                <p v-text="name"></p>
+            </li>
+        </ul>
     </div>
 </body>
 <script>
@@ -60,7 +74,10 @@
             select: ['v1', 2, 3, 4],
             pick: '',
             checkedNames: [],
-            address: ['中国', '四川', '成都']
+            address: ['中国', '四川', '成都'],
+            html: '<span style="color:red">这是一段v-html</span>',
+            show: 'a',
+            if: true
         },
         methods: {
             increase() {

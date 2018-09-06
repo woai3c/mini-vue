@@ -1,6 +1,5 @@
-import {on, off, bind} from './utils.js'
-
-const isArray = Array.isArray
+import {on, off, bind, isArray, getAttr, remove, replace, insertNode} from './utils.js'
+import compile from './compile.js'
 
 const handlers = {
     text: {
@@ -126,6 +125,7 @@ export default {
     },
 
     on: {
+        priority: 700,
         bind() {
             this.appFn = null
         },
@@ -146,6 +146,7 @@ export default {
     },
 
     bind: {
+        priority: 850,
         bind() {
             this.attr = this.descriptor.arg
         },
@@ -156,6 +157,7 @@ export default {
     },
 
     model: {
+        priority: 800,
         bind() {
             const el = this.el
             const tag = el.tagName
@@ -178,6 +180,108 @@ export default {
             handler.bind.call(this)
             this.update = handler.update
         }
+    },
+
+    html: {
+        update(value) {
+            this.el.innerHTML = value
+        }
+    },
+
+    show: {
+        update(value) {
+            this.el.style.display = !!value? '' : 'none'
+        }
+    },
+
+    if: {
+        priority: 2100,
+        bind() {
+            const el = this.el
+            const next = el.nextElementSibling
+            if (next && getAttr(next, 'v-else') !== null) {
+                remove(next)
+                this.elseEl = next
+            }
+            this.anchor = document.createTextNode('')
+            replace(el, this.anchor)
+            this.isFirst = true
+        },
+
+        update(value) {
+            if (value) {
+                if (this.cloneElseEl) {
+                    remove(this.cloneElseEl)
+                }
+
+                if (!this.isFirst) {
+                    this.cloneEl = this.el.cloneNode(true)
+                    insertNode(this.cloneEl, this.anchor)
+                } else {
+                    this.isFirst = false
+
+                    setTimeout(() => {
+                        this.cloneEl = this.el.cloneNode(true)
+                        insertNode(this.cloneEl, this.anchor)
+                    }, 0)
+                }
+                
+            } else {
+                if (this.cloneEl) {
+                    remove(this.cloneEl)
+                }
+
+                if (!this.isFirst) {
+                    this.cloneElseEl = this.elseEl.cloneNode(true)
+                    insertNode(this.cloneElseEl, this.anchor)
+                } else {
+                    this.isFirst = false
+
+                    setTimeout(() => {
+                        this.cloneElseEl = this.elseEl.cloneNode(true)
+                        insertNode(this.cloneElseEl, this.anchor)
+                    }, 0)
+                }
+            }
+        }
+    },
+
+    for: {
+        priority: 2200,
+        bind() {
+            const re1 = /(.*) (?:in|of) (.*)/
+            const re2 = /\((.*),(.*)\)/
+            let match = this.expression.match(re1)
+            // if (match) {
+            //     var match1 = match[1].match(/\((.*),(.*)\)/)
+            //     if (match1) {
+            //         this.iterator = match1[1].trim()
+            //         this.alias = match1[2].trim()
+            //     } else {
+            //         this.alias = match[1].trim()
+            //     }
+            //     this.expression = match[2]
+            // }
+            this.alias = match[1].trim()
+            this.expression = match[2].trim()
+            this.anchor = document.createTextNode('')
+            replace(this.el, this.anchor)
+        },
+
+        update(value) {
+            if (this.frag) {
+                remove(this.frag)
+            }
+            this.frag = document.createDocumentFragment()
+            let cloneNode
+            value.forEach((val, i) => {
+                cloneNode = this.el.cloneNode(true)
+                cloneNode.innerHTML = cloneNode.innerHTML.replace(`{{${this.alias}}}`, value[i])
+                this.frag.appendChild(cloneNode)
+            })
+            
+            insertNode(this.frag, this.anchor)
+        }
     }
 }
 
@@ -197,3 +301,4 @@ function getValue(el, multi, init) {
     }
     return res
 }
+let testindex = 0

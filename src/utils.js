@@ -3,10 +3,10 @@ export function toArray(arry, index) {
     return [...arry].slice(index)
 }
 
-export function replace(target, el) {
-    const parent = target.parentNode;
+export function replace(oldNode, newNode) {
+    const parent = oldNode.parentNode;
     if (parent) {
-        parent.replaceChild(el, target)
+        parent.replaceChild(newNode, oldNode)
     }
 }
 
@@ -49,4 +49,19 @@ export function hasOwn(obj, key) {
 
 export function isObject(obj) {
     return obj !== null && typeof obj === 'object'
+}
+
+const isArray = Array.isArray
+export {isArray}
+
+export function getAttr(node, _attr) {
+    return node.getAttribute(_attr)
+}
+
+export function remove(el) {
+    el.parentNode.removeChild(el)
+}
+
+export function insertNode(newNode, oldNode) {
+    oldNode.parentNode.insertBefore(newNode, oldNode)
 }

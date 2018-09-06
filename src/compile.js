@@ -1,5 +1,5 @@
 import handlers from './handlers.js'
-import {toArray, replace} from './utils.js'
+import {toArray, replace, getAttr} from './utils.js'
 
 const onRe = /^(v-on:|@)/
 const dirAttrRE = /^v-([^:]+)(?:$|:(.*)$)/
@@ -8,14 +8,18 @@ const tagRE = /\{\{\{((?:.|\n)+?)\}\}\}|\{\{((?:.|\n)+?)\}\}/g
 const dirs = []
 
 export default function compile(vm, el) {
-    compileNode(vm, el)
-    if (el.hasChildNodes()) {
-        compileNodeList(el.childNodes)
+    if (!compileNode(el)) {
+        if (el.hasChildNodes()) {
+            compileNodeList(el.childNodes)
+        }
     }
+
+    sortDirectives(dirs)
+
     dirs.forEach(dir => {
         vm.bindDir(dir)
     })
-
+    
     vm._directives.forEach(dir => {
         dir._bind()
     })
@@ -24,7 +28,7 @@ export default function compile(vm, el) {
 function compileNode(node) {
     const type = node.nodeType
     if (type == 1) {
-        compileElement(node)
+        return compileElement(node)
     } else if (type == 3) {
         compileTextNode(node)
     }
@@ -33,9 +37,10 @@ function compileNode(node) {
 
 function compileNodeList(nodes) {
     nodes.forEach(node => {
-        compileNode(node)
-        if (node.hasChildNodes()) {
-            compileNodeList(node.childNodes)
+        if (!compileNode(node)) {
+            if (node.hasChildNodes()) {
+                compileNodeList(node.childNodes)
+            }
         }
     })
 }
@@ -43,6 +48,7 @@ function compileNodeList(nodes) {
 function compileElement(node) {
     if (node.hasAttributes()) {
         let matched
+        let isFor = false
         const attrs = toArray(node.attributes)
         attrs.forEach((attr) => {
             const name = attr.name.trim()
@@ -69,17 +75,25 @@ function compileElement(node) {
                     def: handlers.bind
                 })
             } else if (matched = name.match(dirAttrRE)) {
-                node.removeAttribute(name)
-                dirs.push({
-                    el: node,
-                    arg: undefined,
-                    name: name.replace(/^v-/, ''),
-                    attr: name,
-                    expression: value,
-                    def: handlers[matched[1]]
-                })
+                if (name !== 'v-else') {
+                    node.removeAttribute(name)
+                    dirs.push({
+                        el: node,
+                        arg: undefined,
+                        name: name.replace(/^v-/, ''),
+                        attr: name,
+                        expression: value,
+                        def: handlers[matched[1]]
+                    })
+                }
+
+                if (name == 'v-for') {
+                    isFor = true
+                }
             }
         })
+
+        return isFor
     }
 }
 
@@ -148,4 +162,15 @@ function processTextToken(token) {
     }
 
     return el
+}
+
+function sortDirectives(dirs) {
+    dirs.forEach(dir => {
+        if (!dir.def.priority) {
+            dir.def.priority = 1000
+        }
+    })
+    dirs.sort((a, b) => {
+        return b.def.priority - a.def.priority
+    })
 }

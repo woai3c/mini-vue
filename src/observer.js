@@ -1,7 +1,6 @@
 import Dep from './dep.js'
-import {def, hasOwn} from './utils.js'
+import {def, hasOwn, isArray} from './utils.js'
 
-const isArray = Array.isArray
 const arrayProto = Array.prototype
 const arrayMethods = Object.create(arrayProto)
 

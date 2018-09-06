@@ -33,6 +33,7 @@ MiniVue.prototype = {
     initData() {
         const vm = this
         vm.$el = document.querySelector(vm.$options.el)
+        vm.$el.__minivue__ = vm
         let data = vm.$options.data
         data = vm._data = typeof data === 'function'? data() : data || {}
         const keys = Object.keys(data)

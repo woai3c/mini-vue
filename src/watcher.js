@@ -36,7 +36,6 @@ Watcher.prototype = {
         // 在读取值时先将观察者对象赋值给Dep.target 否则Dep.target为空 不会触发收集依赖
         Dep.target = this
         const value = this.getter.call(this.vm, this.vm)
-        console.log(value)
         // 触发依赖后置为空
         Dep.target = null
         return value
