@@ -1,35 +1,18 @@
 ## 实现一个迷你版的vue
-### Vue实例化过程
 
-1. 实例化之前Vue会先给Vue挂载一系列的原型方法以及静态方法、属性
-2. 实例化时会对选项参数进行规范化、合并等操作
-3. 通过自定义Render方法、template、el等生成Render函数
-4. 数据进行绑定 通过Watcher监听数据的变化
-5. 数据发生变化时，render函数会执行生成VNode对象
+### 如何阅读源码
 
-通过patch方法，对比新旧VNode对象，再通过DOM Diff算法添加、修改、删除真正的DOM元素
+阅读源码要带有目的去看 不能毫无目的的去看源码 以免掉进无尽的细节陷阱中而出不来
 
-具体流程可以看lifecycle.png图片<br>
-![lifecycle](https://github.com/woai3c/mini-vue/blob/master/imgs/lifecycle.png)
+### Vue源码要怎么看呢
+建议从一个Vue实例化的过程开始 一直跟踪这条主线 直到结尾为止 各种分枝暂时不要管 等把主线理解清楚了 细枝末节自然不在话下
 
-## 简单点来说就是监听数据 数据发生变化 重新渲染DOM
-![data](https://github.com/woai3c/mini-vue/blob/master/imgs/data.png)
+### Vue1.0模块
+在Vue主线里有几大模块（除去模板和SLOT）
+Vue构造函数 观察者observer 观察者watcher 指令系统directive  DOM解析compile watcher与observer之间的联系者dep
+我们来看看他们之间的关系
 
-Vue源码11000行 对于刚接触Vue的前端人员来说 阅读有点困难<br>
-目前在网上搜集了很多资料 所以我打算将Vue比较重要的功能实现一遍 代码比较少 理解起来也没有什么难度 
 
-### 实现的功能
-1. 监听数据 数据发生变化 重新渲染DOM(不使用VNode 直接操作DOM) 
-2. 部分指令功能和事件功能
-```
-实现的指令功能有
-1. v-model 
-2. v-bind:|: 
-3. v-on|@
-4. watch
-```
+
+
 [学习Vue源码推荐看这篇文章](http://hcysun.me/vue-design/art/)
-
-```
-打开dist->index.html可以看demo效果
-```
