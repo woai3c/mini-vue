@@ -36,5 +36,17 @@ Directive.prototype = {
 
     set(value) {
         this._watcher.set(value)
+    },
+
+    _teardown(i) {
+        if (this.unbind) {
+            this.unbind()
+        }
+
+        if (this._watcher) {
+            this._watcher.teardown()
+        }
+
+        this.vm = this.el = this._watcher = null
     }
 }

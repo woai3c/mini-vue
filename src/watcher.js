@@ -69,9 +69,18 @@ Watcher.prototype = {
             this.depIds.add(dep.id)
             dep.addSub(this)
         }
+    },
+
+    teardown() {
+        this.vm._watchers.splice(this.vm._watchers.indexOf(this), 1)
+        let i = this.deps.length
+        while (i--) {
+          this.deps[i].removeSub(this)
+        }
+        this.vm = this.cb = this.value = null
     }
 }
-
+// 如果要对{{obj.a.b.msg}} 求值 则建一个函数 返回 vm.obj.a.b.msg 值
 function parseExpression(exp) {
     exp = exp.trim()
     const res = {exp}

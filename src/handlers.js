@@ -108,12 +108,17 @@ const handlers = {
             } else {
                 el.checked = !!value
             }
+        },
+
+        unbind() {
+            off(el, 'change', this.listener)
         }
     }
 }
 
 // 针对各种指令的回调函数
 export default {
+    // 文本节点 {{text}}
     text: {
         bind() {
             this.attr = this.el.nodeType === 3 ? 'data' : 'textContent'
@@ -123,7 +128,7 @@ export default {
             this.el[this.attr] = value
         }
     },
-
+    // @ | v-on
     on: {
         priority: 700,
         bind() {
@@ -144,7 +149,7 @@ export default {
             }
         }
     },
-
+    // : | v-bind:
     bind: {
         priority: 850,
         bind() {
@@ -155,7 +160,7 @@ export default {
             this.el.setAttribute(this.attr, value)
         }
     },
-
+    // v-model
     model: {
         priority: 800,
         bind() {
@@ -181,19 +186,21 @@ export default {
             this.update = handler.update
         }
     },
-
+    // v-html
     html: {
         update(value) {
             this.el.innerHTML = value
         }
     },
-
+    // v-show
     show: {
         update(value) {
             this.el.style.display = !!value? '' : 'none'
         }
     },
-
+    // v-if
+    // 将if和else的DOM都渲染完毕然后移除 但用引用保存起来 在原位置放一个文本节点占位 根据值true or false 来将对应的节点添加到占位节点的前面
+    // 如果值变更 则将节点删除用新的替换 
     if: {
         priority: 2100,
         bind() {
@@ -203,6 +210,7 @@ export default {
                 remove(next)
                 this.elseEl = next
             }
+            // 占位节点
             this.anchor = document.createTextNode('')
             replace(el, this.anchor)
             this.isFirst = true
@@ -245,46 +253,76 @@ export default {
             }
         }
     },
-
+    // v-for
+    // 将v-for节点克隆 再根据值的长度克隆进去再compile渲染 如果值变更 则将之前的节点全部删除 重新渲染
     for: {
         priority: 2200,
         bind() {
             const re1 = /(.*) (?:in|of) (.*)/
             const re2 = /\((.*),(.*)\)/
             let match = this.expression.match(re1)
-            // if (match) {
-            //     var match1 = match[1].match(/\((.*),(.*)\)/)
-            //     if (match1) {
-            //         this.iterator = match1[1].trim()
-            //         this.alias = match1[2].trim()
-            //     } else {
-            //         this.alias = match[1].trim()
-            //     }
-            //     this.expression = match[2]
-            // }
-            this.alias = match[1].trim()
+            
+            if (match) {
+                let match1 = match[1].match(/\((.*),(.*)\)/)
+                if (match1) {
+                    this.valueKey = match1[1].trim()
+                    this.indexKey = match1[2].trim()
+                } else {
+                    this.valueKey = match[1].trim()
+                }
+            } else {
+                this.valueKey = match[1].trim()
+            }
+            
             this.expression = match[2].trim()
             this.anchor = document.createTextNode('')
+            this.frag = document.createDocumentFragment()
             replace(this.el, this.anchor)
         },
 
         update(value) {
-            if (this.frag) {
-                remove(this.frag)
-            }
-            this.frag = document.createDocumentFragment()
+            if (this.len) {
+                while (this.len--) {
+                    remove(this.anchor.previousElementSibling)
+                }            
+            } 
             let cloneNode
-            value.forEach((val, i) => {
+            let re1
+            let re2 
+            let html
+
+            if (typeof value !== 'object') {
+                console.error(`${this.expression}必须为对象或数组`)
+                return
+            }
+
+            this.len = 0
+
+            for (let key in value) {
+                this.len++
                 cloneNode = this.el.cloneNode(true)
-                cloneNode.innerHTML = cloneNode.innerHTML.replace(`{{${this.alias}}}`, value[i])
+                html = cloneNode.innerHTML
+                if (this.valueKey) {
+                    re1 = new RegExp(`{{\\s*${this.valueKey}\\s*}}`, 'g')
+                    html = html.replace(re1, value[key])
+                }
+                if (this.indexKey) {
+                    re2 = new RegExp(`{{\\s*${this.indexKey}\\s*}}`, 'g')
+                    html = html.replace(re2, key)
+                }
+               
+                cloneNode.innerHTML = html
+                
                 this.frag.appendChild(cloneNode)
-            })
-            
+                
+            }
+            compile(this.vm, this.frag)
             insertNode(this.frag, this.anchor)
         }
     }
 }
 
+// 获取selected选中的值
 function getValue(el, multi, init) {
     const res = multi? [] : null
     let op, selected
@@ -301,4 +339,3 @@ function getValue(el, multi, init) {
     }
     return res
 }
-let testindex = 0

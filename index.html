@@ -7,7 +7,7 @@
 </html>
 <body>
    <div id="app" test>
-        <p>姓名：{{name}}</p>
+        <p>姓名：{{name}} {{name}}</p>
         <p>年龄：{{age}}</p>
         <p>地址: {{address}}</p>
         <button @click="increase">年龄+1</button>
@@ -54,10 +54,13 @@
 
         <ul id="for">
             <li v-for="item in address">
-                {{item}}
+                {{ item }}
+
                 <p v-text="name"></p>
             </li>
         </ul>
+
+        <button @click="reset">回复</button>
     </div>
 </body>
 <script>
@@ -74,23 +77,24 @@
             select: ['v1', 2, 3, 4],
             pick: '',
             checkedNames: [],
-            address: ['中国', '四川', '成都'],
+            address: ['中国', '天津', '南开'],
             html: '<span style="color:red">这是一段v-html</span>',
             show: 'a',
+            newAddress: ['银河', '太阳', '地球'],
             if: true
         },
         methods: {
             increase() {
-                this.age++
+                this.address.push('广东')
             },
-            sayHi() {
-                console.log('hi')
+            reset() {
+                this.address = ['中国', '天津', '南开']
             }
         },
         watch: {
             age() {
                 console.log('年龄变成了' + this.age)
             }
-        }
+        },
     })
 </script>

@@ -6,12 +6,61 @@
 </head>
 </html>
 <body>
-   <div id="app" test="1">
-        <p>姓名：{{name}}</p>
+   <div id="app" test>
+        <p>姓名：{{name}} {{name}}</p>
         <p>年龄：{{age}}</p>
+        <p>地址: {{address}}</p>
         <button @click="increase">年龄+1</button>
-        <input v-model="age" :bind="name">
+        <input v-model="age" :name="name">
+        <textarea v-model="select"></textarea>
+        <select multiple="multiple" v-model="select">
+            <option value="v1">0</option>
+            <option value="v2">1</option>
+            <option value="v3">2</option>
+            <option value="v4">3</option>
+        </select>
         <button @click="sayHi">sayHi</button>
+
+        <label>
+            <input type="radio" name="good" value="r1" v-model="pick">
+            test1
+        </label>
+        <label>
+            <input type="radio" name="good" value="r2" v-model="pick">
+            test2
+        </label>
+        <label>
+            <input type="radio" name="good" value="r3" v-model="pick">
+            test3
+        </label>
+        <input v-model="pick">
+
+
+        <input type="checkbox" id="jack" value="Jack" v-model="checkedNames">
+        <label for="jack">c1</label>
+        <input type="checkbox" id="john" value="John" v-model="checkedNames">
+        <label for="john">c2</label>
+        <input type="checkbox" id="mike" value="Mike" v-model="checkedNames">
+        <label for="mike">c3</label>
+        <br>
+        <span>Checked names: {{ checkedNames }}</span>
+
+        <p v-text="name"></p>
+        <p v-html="html"></p>
+        <p v-show="show">这是一个v-show示例</p>
+
+        <p v-if="if" el=1>{{address[0]}}</p>
+        <p v-else el=2>{{address[1]}}</p> 
+
+        <ul id="for">
+            <li v-for="item in address">
+                {{ item }}
+
+                <p v-text="name"></p>
+            </li>
+        </ul>
+
+        <button @click="reset">回复</button>
     </div>
 <script type="text/javascript" src="mini-vue.min.js"></script></body>
 <script>
@@ -19,23 +68,33 @@
         el: '#app',
         data: {
             age: 18,
-            name: '小明',
+            name: '小马',
             obj: {
-                a:1
-            }
+                a: {
+                    msg: 'abc'
+                }
+            },
+            select: ['v1', 2, 3, 4],
+            pick: '',
+            checkedNames: [],
+            address: ['中国', '天津', '南开'],
+            html: '<span style="color:red">这是一段v-html</span>',
+            show: 'a',
+            newAddress: ['银河', '太阳', '地球'],
+            if: true
         },
         methods: {
             increase() {
-                this.age++
+                this.address.push('广东')
             },
-            sayHi() {
-                alert('hi')
+            reset() {
+                this.address = ['中国', '天津', '南开']
             }
         },
         watch: {
             age() {
                 console.log('年龄变成了' + this.age)
             }
-        }
+        },
     })
 </script>

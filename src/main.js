@@ -1,6 +1,6 @@
 import observe from './observer.js'
 import Watcher from './watcher.js'
-import {toArray} from './utils.js'
+import {toArray, isArray} from './utils.js'
 import Directive from './directives.js'
 import compile from './compile.js'
 
@@ -33,27 +33,26 @@ MiniVue.prototype = {
     initData() {
         const vm = this
         vm.$el = document.querySelector(vm.$options.el)
-        vm.$el.__minivue__ = vm
         let data = vm.$options.data
         data = vm._data = typeof data === 'function'? data() : data || {}
         const keys = Object.keys(data)
 
         // 对每一个key实现代理 即可通过vm.msg来访问vm._data.msg
-        keys.forEach(e => {
-            vm.proxy(vm, '_data', e)
+        keys.forEach(key => {
+            vm.proxy(vm, '_data', key)
         })
     },
-
+    // 初始化方法选项
     initMethods() {
         const vm = this
         const methods = vm.$options.methods? vm.$options.methods : {}
         const keys = Object.keys(methods)
         // 将methods上的方法赋值到vm实例上
-        keys.forEach(e => {
-            vm[e] = methods[e]
+        keys.forEach(key => {
+            vm[key] = methods[key]
         })
     },
-
+    // 初始化watch选项
     initWatch() {
         if (this.$options.watch) {
             const watch = this.$options.watch
@@ -78,6 +77,21 @@ MiniVue.prototype = {
             this[sourceKey][key] = val
         }
         Object.defineProperty(target, key, sharedPropertyDefinition)
+    },
+
+    // 当为对象添加属性或修改数组的值时可用这个方法 能实时更新
+    $set(obj, key, val) {
+        this[obj][key] = val
+        vm[obj].__ob__.dep.notify()
+    },
+    // 当为对象删除属性或删除数组的值时可用这个方法 能实时更新
+    $delete(obj, key) {
+        if (isArray(this[obj])) {
+            this[obj].splice(key, 1)
+        } else {
+            delete this[obj][key]
+        }
+        vm[obj].__ob__.dep.notify()
     },
 
     $watch(expOrFn, callback) {
@@ -129,11 +143,7 @@ MiniVue.prototype = {
         }
         this.$on(event, on)
     },
-
-    bindDir(descriptor) {
-        this._directives.push(new Directive(descriptor, this))
-    },
-
+    // 解析DOM
     _compile() {
         compile(this, this.$el)
     }

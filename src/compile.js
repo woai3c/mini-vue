@@ -1,11 +1,15 @@
 import handlers from './handlers.js'
+import Directive from './directives.js'
 import {toArray, replace, getAttr} from './utils.js'
 
 const onRe = /^(v-on:|@)/
 const dirAttrRE = /^v-([^:]+)(?:$|:(.*)$)/
 const bindRe = /^(v-bind:|:)/
 const tagRE = /\{\{\{((?:.|\n)+?)\}\}\}|\{\{((?:.|\n)+?)\}\}/g
-const dirs = []
+// 指令描述符容器
+const des = []
+// 用来判断当前是否在解析指令
+let pending = false
 
 export default function compile(vm, el) {
     if (!compileNode(el)) {
@@ -13,16 +17,25 @@ export default function compile(vm, el) {
             compileNodeList(el.childNodes)
         }
     }
-
-    sortDirectives(dirs)
-
-    dirs.forEach(dir => {
-        vm.bindDir(dir)
-    })
     
-    vm._directives.forEach(dir => {
-        dir._bind()
-    })
+    // 当前在解析指令 如果有新的指令 则加到des数组后面 数组会按顺序执行描述符 包括新的描述符
+    // 假如有5个描述符 当前执行到第2个 如果有新的 则push进数组 
+    if (!pending) {
+        let dir, descriptor
+        pending = true
+        sortDescriptors(des)
+        while (des.length) {       
+            descriptor = des.shift()
+            dir = new Directive(descriptor, vm)          
+            dir._bind()           
+            vm._directives.push(dir)  
+        }
+        pending = false
+        // JS主线程执行完再进行指令回收
+        setTimeout(() => {
+            teardown(vm)
+        }, 0)
+    }
 }
 
 function compileNode(node) {
@@ -30,14 +43,15 @@ function compileNode(node) {
     if (type == 1) {
         return compileElement(node)
     } else if (type == 3) {
-        compileTextNode(node)
+        return compileTextNode(node)
     }
 }
 
 
 function compileNodeList(nodes) {
     nodes.forEach(node => {
-        if (!compileNode(node)) {
+        const flag = compileNode(node)
+        if (!flag) {
             if (node.hasChildNodes()) {
                 compileNodeList(node.childNodes)
             }
@@ -53,9 +67,10 @@ function compileElement(node) {
         attrs.forEach((attr) => {
             const name = attr.name.trim()
             const value = attr.value.trim()
+
             if (onRe.test(name)) {
                 node.removeAttribute(name)
-                dirs.push({
+                des.push({
                     el: node,
                     arg: name.replace(onRe, ''),
                     name: 'on',
@@ -63,10 +78,11 @@ function compileElement(node) {
                     expression: value,
                     def: handlers.on
                 })
+
             } else if (bindRe.test(name)) {
                 handlers[matched[1]]
                 node.removeAttribute(name)
-                dirs.push({
+                des.push({
                     el: node,
                     arg: name.replace(bindRe, ''),
                     name: 'bind',
@@ -74,10 +90,11 @@ function compileElement(node) {
                     expression: value,
                     def: handlers.bind
                 })
-            } else if (matched = name.match(dirAttrRE)) {
+
+            } else if (matched = name.match(dirAttrRE)) {             
                 if (name !== 'v-else') {
                     node.removeAttribute(name)
-                    dirs.push({
+                    des.push({
                         el: node,
                         arg: undefined,
                         name: name.replace(/^v-/, ''),
@@ -92,13 +109,13 @@ function compileElement(node) {
                 }
             }
         })
-
+        
         return isFor
     }
 }
 
 function compileTextNode(node) {
-    const tokens = parseText(node.wholeText)
+    const tokens = parseText(node.nodeValue)
     if (!tokens) {
         return
     }
@@ -108,15 +125,13 @@ function compileTextNode(node) {
     tokens.forEach(token => {
         el = token.tag ? processTextToken(token, node) : document.createTextNode(token.value)
         frag.appendChild(el)
-
         if (token.tag) {
-            dirs.push(token.descriptor)
+            des.push(token.descriptor)
         }
     })
-
     replace(node, frag)
 }
-
+// 将文档节点解释为TOKEN
 function parseText(text) {
     let index = 0
     let lastIndex = 0
@@ -136,7 +151,6 @@ function parseText(text) {
             value: match[2],
             tag: true
         })
-
         lastIndex = index + match[0].length
     }
 
@@ -160,17 +174,41 @@ function processTextToken(token) {
         def: handlers.text,
         expression: token.value.trim()
     }
-
+    
     return el
 }
 
-function sortDirectives(dirs) {
-    dirs.forEach(dir => {
-        if (!dir.def.priority) {
-            dir.def.priority = 1000
+// 整理指令优先级 优先高的先执行 例如v-for
+function sortDescriptors(des) {
+    des.forEach(d => {
+        if (!d.def.priority) {
+            d.def.priority = 1000
         }
     })
-    dirs.sort((a, b) => {
+    des.sort((a, b) => {
         return b.def.priority - a.def.priority
     })
+}
+
+// 删除已经用不上的指令 如果不是v-if v-for 并且不在文档中的DOM元素删除并和相应绑定的指令 观察者函数删除
+function teardown(vm) {
+    const body = document.body
+    const contains = body.contains
+    const dirs = vm._directives
+    let attr
+    const temp = []
+    let dir
+    // document.body.contains判断DOM是否在文档中
+    while (dirs.length) {
+        dir = dirs.shift()
+        attr = dir.descriptor.attr
+        if (!contains.call(body, dir.el) && attr !== 'v-for' && attr !== 'v-if') {
+            dir._teardown()
+        } else {
+            temp.push(dir)
+        }
+    }
+    
+    vm._directives = [...temp]
+    temp.length = 0
 }

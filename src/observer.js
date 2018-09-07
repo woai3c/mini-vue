@@ -1,6 +1,8 @@
 import Dep from './dep.js'
 import {def, hasOwn, isArray} from './utils.js'
 
+// 在数组原型上增加一点改动
+
 const arrayProto = Array.prototype
 const arrayMethods = Object.create(arrayProto)
 
@@ -16,8 +18,10 @@ const methodsToPatch = [
 
 
 methodsToPatch.forEach(function (method) {
+    // 缓存原型自身的方法
     const original = arrayProto[method]
     def(arrayMethods, method, function mutator(...args) {
+        // 先执行原型自身的方法
         const result = original.apply(this, args)
         const ob = this.__ob__
         let inserted
@@ -33,6 +37,7 @@ methodsToPatch.forEach(function (method) {
         if (inserted) {
             ob.observeArray(inserted)
         }
+        // 触发依赖更新
         ob.dep.notify()
         return result
     })
@@ -57,6 +62,7 @@ function Observer(value) {
     this.value = value
     this.dep = new Dep()
     def(value, '__ob__', this)
+    
     if (isArray(value)) {
         value.__proto__ = arrayMethods
         this.observeArray(value)
