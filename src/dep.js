@@ -27,8 +27,8 @@ Dep.prototype = {
     },
 
     notify() {
-        this.subs.forEach(e => {
-            e.update()
+        this.subs.forEach(watcher => {
+            watcher.update()
         })
     }
 }

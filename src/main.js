@@ -1,15 +1,12 @@
 import observe from './observer.js'
 import Watcher from './watcher.js'
 import {toArray, isArray} from './utils.js'
-import Directive from './directives.js'
 import compile from './compile.js'
 
 // MiniVue构造函数 参数是一个对象
 function MiniVue(options) {
     // 存放观察者实例
     this._watchers = []
-    // 存放文本节点 在compile上会用到
-    this._textNodes = []
     // 存放事件
     this._events = {}
     // 存放指令
@@ -24,10 +21,8 @@ MiniVue.prototype = {
     init() {
         this.initData()
         this.initMethods()
-        // 监听数据
-        observe(this._data)
-        this._compile()
         this.initWatch()
+        this.compile()
     },
 
     initData() {
@@ -41,6 +36,8 @@ MiniVue.prototype = {
         keys.forEach(key => {
             vm.proxy(vm, '_data', key)
         })
+        // 监听数据
+        observe(this._data)
     },
     // 初始化方法选项
     initMethods() {
@@ -90,8 +87,8 @@ MiniVue.prototype = {
             this[obj].splice(key, 1)
         } else {
             delete this[obj][key]
+            vm[obj].__ob__.dep.notify()
         }
-        vm[obj].__ob__.dep.notify()
     },
 
     $watch(expOrFn, callback) {
@@ -144,7 +141,7 @@ MiniVue.prototype = {
         this.$on(event, on)
     },
     // 解析DOM
-    _compile() {
+    compile() {
         compile(this, this.$el)
     }
 }

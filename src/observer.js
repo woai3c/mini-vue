@@ -43,7 +43,7 @@ methodsToPatch.forEach(function (method) {
     })
 })
 
-export default function observe(value, vm) {
+export default function observe(value) {
     if (!value || typeof value !== 'object') {
         return
     }

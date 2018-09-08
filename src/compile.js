@@ -12,6 +12,7 @@ const des = []
 let pending = false
 
 export default function compile(vm, el) {
+    // 如果当前节点不是v-for指令 则继续解析子节点
     if (!compileNode(el)) {
         if (el.hasChildNodes()) {
             compileNodeList(el.childNodes)
@@ -31,7 +32,7 @@ export default function compile(vm, el) {
             vm._directives.push(dir)  
         }
         pending = false
-        // JS主线程执行完再进行指令回收
+        // JS主线程执行完再进行废弃指令回收
         setTimeout(() => {
             teardown(vm)
         }, 0)
@@ -50,8 +51,7 @@ function compileNode(node) {
 
 function compileNodeList(nodes) {
     nodes.forEach(node => {
-        const flag = compileNode(node)
-        if (!flag) {
+        if (!compileNode(node)) {
             if (node.hasChildNodes()) {
                 compileNodeList(node.childNodes)
             }
@@ -202,6 +202,7 @@ function teardown(vm) {
     while (dirs.length) {
         dir = dirs.shift()
         attr = dir.descriptor.attr
+        // 如果DOM不在文档中 并且指令不是v-for v-if则删除指令
         if (!contains.call(body, dir.el) && attr !== 'v-for' && attr !== 'v-if') {
             dir._teardown()
         } else {

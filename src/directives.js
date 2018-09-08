@@ -17,6 +17,7 @@ Directive.prototype = {
             extend(this, def)
         }
 
+        // 如果指令回调对象有bind函数则执行
         if (this.bind) {
             this.bind()
         }
@@ -29,6 +30,7 @@ Directive.prototype = {
         }
         const watcher = this._watcher = new Watcher(this.vm, this.expression, this._update)
 
+        // 第一次更新渲染
         if (this.update) {
             this.update(watcher.value)
         }
