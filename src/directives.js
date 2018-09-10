@@ -1,5 +1,5 @@
 import {extend} from './utils.js'
-import Watcher from './watcher.js'
+import {Watcher} from './watcher.js'
 
 export default function Directive(descriptor, vm) {
     this.vm = vm

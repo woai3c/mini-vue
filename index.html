@@ -11,7 +11,7 @@
         <p>年龄：{{age}}</p>
         <p>地址: {{address}}</p>
         <button @click="increase">年龄+1</button>
-        <input v-model="age" :name="name">
+       <!--  <input v-model="age" :name="name"> -->
         <textarea v-model="select"></textarea>
         <select multiple="multiple" v-model="select">
             <option value="v1">0</option>
@@ -61,9 +61,24 @@
         </ul>
 
         <button @click="reset">回复</button>
+        <p v-my-directive="name">新指令</p>
+        <p>{{comTest}}</p>
     </div>
 </body>
 <script>
+    // 注册全局指令
+    MiniVue.directive('my-directive', {
+        bind() {
+            console.log('bind')
+        },
+        update(value) {
+            console.log('update' + value)
+        },
+        unbind() {
+            console.log('unbind')
+        }
+    })
+
     const vm = new MiniVue({
         el: '#app',
         data: {
@@ -85,16 +100,19 @@
         },
         methods: {
             increase() {
-                this.address.push('广东')
+                this.age++
+                this.age++
+                this.age++
+                this.age++
             },
             reset() {
                 this.address = ['中国', '天津', '南开']
             }
         },
-        watch: {
-            age() {
-                console.log('年龄变成了' + this.age)
+        computed: {
+            comTest() {
+                return this.name + ' ' + this.age
             }
-        },
+        }
     })
 </script>

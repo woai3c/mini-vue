@@ -125,6 +125,7 @@ export default {
         },
 
         update(value) {
+            console.log(value)
             this.el[this.attr] = value
         }
     },
