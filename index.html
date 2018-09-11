@@ -6,7 +6,7 @@
 </head>
 </html>
 <body>
-   <div id="app" test>
+   <div id="app">
         <p>姓名：{{name}} {{name}}</p>
         <p>年龄：{{age}}</p>
         <p>地址: {{address}}</p>
@@ -113,6 +113,7 @@
             comTest() {
                 return this.name + ' ' + this.age
             }
-        }
+        },
+        template: '<div class="haha">{{name}} {{age}}</div>'
     })
 </script>

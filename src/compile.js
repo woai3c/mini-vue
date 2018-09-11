@@ -1,17 +1,15 @@
-import handlers from './handlers.js'
 import Directive from './directives.js'
 import {toArray, replace, getAttr} from './utils.js'
 
-const onRe = /^(v-on:|@)/
-const dirAttrRE = /^v-([^:]+)(?:$|:(.*)$)/
-const bindRe = /^(v-bind:|:)/
-const tagRE = /\{\{\{((?:.|\n)+?)\}\}\}|\{\{((?:.|\n)+?)\}\}/g
+
+let handlers
 // 指令描述符容器
 const des = []
 // 用来判断当前是否在解析指令
 let pending = false
 
 export default function compile(vm, el) {
+    handlers = vm.$options.handlers
     // 如果当前节点不是v-for指令 则继续解析子节点
     if (!compileNode(el)) {
         if (el.hasChildNodes()) {
@@ -58,6 +56,11 @@ function compileNodeList(nodes) {
         }
     })
 }
+
+const onRe = /^(v-on:|@)/
+const dirAttrRE = /^v-([^:]+)(?:$|:(.*)$)/
+const bindRe = /^(v-bind:|:)/
+const tagRE = /\{\{\{((?:.|\n)+?)\}\}\}|\{\{((?:.|\n)+?)\}\}/g
 
 function compileElement(node) {
     if (node.hasAttributes()) {

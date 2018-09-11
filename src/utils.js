@@ -65,3 +65,7 @@ export function remove(el) {
 export function insertNode(newNode, oldNode) {
     oldNode.parentNode.insertBefore(newNode, oldNode)
 }
+
+export function addClass(el, cls) {
+    el.classList.add(cls)
+}
