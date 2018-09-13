@@ -1,5 +1,17 @@
-import {on, off, bind, isArray, getAttr, remove, replace, insertNode} from './utils.js'
+import {on, off, bind, isArray, getAttr, remove, replace, insert} from './utils.js'
 import compile from './compile.js'
+import {defineReactive} from './observer.js'
+import {Watcher} from './watcher.js'
+
+
+const ON = 700
+const MODEL = 800
+const BIND = 850
+const COMPONENT = 1500
+const IF = 2100
+const FOR = 2200
+const SLOT = 2300
+
 
 const handlers = {
     text: {
@@ -125,33 +137,35 @@ export default {
         },
 
         update(value) {
+            
             this.el[this.attr] = value
         }
     },
     // @ | v-on
     on: {
-        priority: 700,
+        priority: ON,
+
         bind() {
-            this.appFn = null
+
         },
 
         update(handler) {
-            if (this.appFn) {
-                off(this.el, this.descriptor.arg, this.appFn)
+            if (this.handler) {
+                off(this.el, this.descriptor.arg, this.handler)
             }
-            this.appFn = bind(handler, this.vm)
-            on(this.el, this.descriptor.arg, this.appFn)
+            this.handler = handler
+            on(this.el, this.descriptor.arg, this.handler)
         },
 
         unbind() {
-            if (this.appFn) {
-                off(this.el, this.descriptor.arg, this.appFn)
+            if (this.handler) {
+                off(this.el, this.descriptor.arg, this.handler)
             }
         }
     },
     // : | v-bind:
     bind: {
-        priority: 850,
+        priority: BIND,
         bind() {
             this.attr = this.descriptor.arg
         },
@@ -162,7 +176,7 @@ export default {
     },
     // v-model
     model: {
-        priority: 800,
+        priority: MODEL,
         bind() {
             const el = this.el
             const tag = el.tagName
@@ -202,7 +216,7 @@ export default {
     // 将if和else的DOM都渲染完毕然后移除 但用引用保存起来 在原位置放一个文本节点占位 根据值true or false 来将对应的节点添加到占位节点的前面
     // 如果值变更 则将节点删除用新的替换 
     if: {
-        priority: 2100,
+        priority: IF,
         bind() {
             const el = this.el
             const next = el.nextElementSibling
@@ -224,13 +238,13 @@ export default {
 
                 if (!this.isFirst) {
                     this.cloneEl = this.el.cloneNode(true)
-                    insertNode(this.cloneEl, this.anchor)
+                    insert(this.cloneEl, this.anchor)
                 } else {
                     this.isFirst = false
 
                     setTimeout(() => {
                         this.cloneEl = this.el.cloneNode(true)
-                        insertNode(this.cloneEl, this.anchor)
+                        insert(this.cloneEl, this.anchor)
                     }, 0)
                 }
                 
@@ -241,13 +255,13 @@ export default {
 
                 if (!this.isFirst) {
                     this.cloneElseEl = this.elseEl.cloneNode(true)
-                    insertNode(this.cloneElseEl, this.anchor)
+                    insert(this.cloneElseEl, this.anchor)
                 } else {
                     this.isFirst = false
 
                     setTimeout(() => {
                         this.cloneElseEl = this.elseEl.cloneNode(true)
-                        insertNode(this.cloneElseEl, this.anchor)
+                        insert(this.cloneElseEl, this.anchor)
                     }, 0)
                 }
             }
@@ -256,7 +270,7 @@ export default {
     // v-for
     // 将v-for节点克隆 再根据值的长度克隆进去再compile渲染 如果值变更 则将之前的节点全部删除 重新渲染
     for: {
-        priority: 2200,
+        priority: FOR,
         bind() {
             const re1 = /(.*) (?:in|of) (.*)/
             const re2 = /\((.*),(.*)\)/
@@ -317,7 +331,71 @@ export default {
                 
             }
             compile(this.vm, this.frag)
-            insertNode(this.frag, this.anchor)
+            insert(this.frag, this.anchor)
+        }
+    },
+    component: {
+        priority: COMPONENT,
+
+        bind() {
+            this.anchor = document.createTextNode('')
+            replace(this.el, this.anchor)
+            const child = this.build()
+            insert(child.$el, this.anchor)
+        },
+
+        build() {
+            this.Component = this.vm.$options.components[this.expression]
+            
+            const options = {
+                name: this.expression,
+                el: this.el.cloneNode(true),
+                // 组件标识
+                _asComponent: true,
+                // 父级上下文对象
+                _context: this.vm,
+                parent: this.vm,
+            }
+            
+            return new this.Component(options)
+        },
+
+        update(value) {
+
+        },
+
+        unbind() {
+
+        }
+    },
+
+    prop: {
+        bind() {
+            const child = this.vm
+            const parent = child._context
+            const prop = this.descriptor.prop
+            const childKey = prop.path
+            const parentKey = prop.parentPath
+            const parentWatcher = this.parentWatcher = new Watcher(parent, parentKey, function(val) {
+                child[prop.path] = val
+            }, {sync: true})
+            defineReactive(child, prop.path, parentWatcher.value)
+        },
+
+        unbind() {
+
+        }
+    },
+    slot: {
+        priority: SLOT,
+
+        bind() {
+            let name = getAttr(this.el, 'name') 
+            if (name == null) { 
+                name = 'default'
+            }
+            const content = this.vm._slotContents && this.vm._slotContents[name]
+            replace(this.el, content)
         }
     }
 }

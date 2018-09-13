@@ -3,14 +3,18 @@ import {Watcher} from './watcher.js'
 
 export default function Directive(descriptor, vm) {
     this.vm = vm
+    this.name = descriptor.name
     this.descriptor = descriptor
     this.expression = descriptor.expression
     this.el = descriptor.el
+    this.modifiers = descriptor.modifiers
+    this.literal = this.modifiers && this.modifiers.literal
 }
 
 Directive.prototype = {
     _bind() {
-        var def = this.descriptor.def
+        const descriptor = this.descriptor
+        const def = descriptor.def
         if (typeof def === 'function') {
             this.update = def
         } else {
@@ -22,17 +26,21 @@ Directive.prototype = {
             this.bind()
         }
 
-        const dir = this
-        if (this.update) {
-            this._update = function (value, oldVal) {
-                dir.update(value, oldVal)
+        if (this.literal) {
+            this.update && this.update(descriptor.raw)
+        } else if (this.expression) {
+            const dir = this
+            if (this.update) {
+                this._update = function (value, oldVal) {
+                    dir.update(value, oldVal)
+                }
             }
-        }
-        const watcher = this._watcher = new Watcher(this.vm, this.expression, this._update)
+            const watcher = this._watcher = new Watcher(this.vm, this.expression, this._update)
 
-        // 第一次更新渲染
-        if (this.update) {
-            this.update(watcher.value)
+            // 第一次更新渲染
+            if (this.update) {
+                this.update(watcher.value)
+            }
         }
     },
 

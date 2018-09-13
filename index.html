@@ -7,11 +7,11 @@
 </html>
 <body>
    <div id="app">
-        <p>姓名：{{name}} {{name}}</p>
+<!--         <p>姓名：{{name}} {{name}}</p>
         <p>年龄：{{age}}</p>
         <p>地址: {{address}}</p>
         <button @click="increase">年龄+1</button>
-       <!--  <input v-model="age" :name="name"> -->
+        <input v-model="age" :name="name">
         <textarea v-model="select"></textarea>
         <select multiple="multiple" v-model="select">
             <option value="v1">0</option>
@@ -62,7 +62,16 @@
 
         <button @click="reset">回复</button>
         <p v-my-directive="name">新指令</p>
-        <p>{{comTest}}</p>
+        <p @click="sayHi">{{comTest}}</p> -->
+
+        <my-component :name="obj" @send="sayTest">
+            <template slot="header">
+                <h1>有名字的slot</h1>
+            </template>
+            <template>
+                <h1>没名字的slot</h1>
+            </template>
+        </my-component>
     </div>
 </body>
 <script>
@@ -78,6 +87,37 @@
             console.log('unbind')
         }
     })
+
+    MiniVue.mixin({
+        methods: {
+            mix() {
+                console.log('一个测试函数')
+            }
+        }
+    })
+
+    const obj = {
+        props: ['name'],
+        data() {
+            return {
+                content: '这是一个子组件'
+            }
+        },
+        template: '\
+                    <div class="blog-post">\
+                        <p @click="test">{{content}}</p>\
+                        <p>{{name.a.msg}}</p>\
+                        <slot name="header"></slot>\
+                        <slot></slot>\
+                    </div>',
+        methods: {
+            test() {
+                this.$emit('send', 'haha')
+            }
+        }
+    }
+
+    MiniVue.component('my-component', obj)
 
     const vm = new MiniVue({
         el: '#app',
@@ -107,13 +147,18 @@
             },
             reset() {
                 this.address = ['中国', '天津', '南开']
+            },
+            sayHi() {
+                console.log('父组件有一个自己的sayHi方法')
+            },
+            sayTest(msg) {
+                console.log('hi, '  + msg)
             }
         },
         computed: {
             comTest() {
-                return this.name + ' ' + this.age
+                return this.age + ' ' + this.name
             }
-        },
-        template: '<div class="haha">{{name}} {{age}}</div>'
+        }
     })
 </script>

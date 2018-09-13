@@ -29,7 +29,7 @@ export function off(el, event, cb) {
 
 export function bind(fn, ctx) {
     return function (a) {
-        var l = arguments.length
+        let l = arguments.length
         return l ? l > 1 ? fn.apply(ctx, arguments) : fn.call(ctx, a) : fn.call(ctx)
     }
 }
@@ -55,17 +55,72 @@ const isArray = Array.isArray
 export {isArray}
 
 export function getAttr(node, _attr) {
-    return node.getAttribute(_attr)
+    const val = node.getAttribute(_attr)
+    if (val !== null) {
+        node.removeAttribute(_attr)
+    }
+    return val
+}
+
+export function getBindAttr(node, name) {
+    let val = getAttr(node, ':' + name)
+    if (val === null) {
+        val = getAttr(node, 'v-bind:' + name)
+    }
+    return val
 }
 
 export function remove(el) {
     el.parentNode.removeChild(el)
 }
 
-export function insertNode(newNode, oldNode) {
+export function insert(newNode, oldNode) {
     oldNode.parentNode.insertBefore(newNode, oldNode)
 }
 
 export function addClass(el, cls) {
     el.classList.add(cls)
+}
+
+export function query(el) {
+    return typeof el === 'string' ? document.querySelector(el) : el;
+}
+
+export function makeGetterFn(body) {
+    return new Function('vm', 'return vm.' + body)
+}
+
+export function firstWordtoUpper(str) {
+    return str.substring(0, 1).toUpperCase() + str.substring(1)
+}
+
+// 去除空文本节点
+export function trimNode(node) {
+    let child
+    while ((child = node.firstChild, isTrimmable(child))) {
+        node.removeChild(child)
+    }
+    while ((child = node.lastChild, isTrimmable(child))) {
+        node.removeChild(child)
+    }
+}
+
+// 是否为空文本节点
+export function isTrimmable(node) {
+    return node && (node.nodeType === 3 && !node.data.trim() || node.nodeType === 8)
+}
+
+export function toUpper(_, c) {
+    return c ? c.toUpperCase() : ''
+}
+
+export function deepCopy(obj) {
+    if (typeof obj != 'object') {
+        return obj
+    }
+    var newobj = {};
+    for (let key in obj) {
+        newobj[key] = deepCopy(obj[key])
+    }
+    return newobj
 }

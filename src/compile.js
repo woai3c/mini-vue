@@ -1,6 +1,6 @@
 import Directive from './directives.js'
-import {toArray, replace, getAttr} from './utils.js'
-
+import {toArray, replace, getAttr, getBindAttr} from './utils.js'
+import {defineReactive} from './observer.js'
 
 let handlers
 // 指令描述符容器
@@ -8,12 +8,15 @@ const des = []
 // 用来判断当前是否在解析指令
 let pending = false
 
-export default function compile(vm, el) {
-    handlers = vm.$options.handlers
+export function compile(vm, el) {
+    if (!handlers) {
+        handlers = vm.$options.handlers
+    }
+        
     // 如果当前节点不是v-for指令 则继续解析子节点
-    if (!compileNode(el)) {
+    if (!compileNode(el, vm)) {
         if (el.hasChildNodes()) {
-            compileNodeList(el.childNodes)
+            compileNodeList(el.childNodes, vm)
         }
     }
     
@@ -25,33 +28,34 @@ export default function compile(vm, el) {
         sortDescriptors(des)
         while (des.length) {       
             descriptor = des.shift()
-            dir = new Directive(descriptor, vm)          
-            dir._bind()           
-            vm._directives.push(dir)  
+            dir = new Directive(descriptor, descriptor.vm)  
+            dir._bind()          
+            descriptor.vm._directives.push(dir)  
         }
         pending = false
         // JS主线程执行完再进行废弃指令回收
         setTimeout(() => {
+            vm._callHook('compiled')
             teardown(vm)
         }, 0)
     }
 }
 
-function compileNode(node) {
+function compileNode(node, vm) {
     const type = node.nodeType
     if (type == 1) {
-        return compileElement(node)
+        return compileElement(node, vm)
     } else if (type == 3) {
-        return compileTextNode(node)
+        return compileTextNode(node, vm)
     }
 }
 
 
-function compileNodeList(nodes) {
+function compileNodeList(nodes, vm) {
     nodes.forEach(node => {
-        if (!compileNode(node)) {
-            if (node.hasChildNodes()) {
-                compileNodeList(node.childNodes)
+        if (!compileNode(node, vm)) {           
+            if (node.hasChildNodes()) {              
+                compileNodeList(node.childNodes, vm)
             }
         }
     })
@@ -61,19 +65,45 @@ const onRe = /^(v-on:|@)/
 const dirAttrRE = /^v-([^:]+)(?:$|:(.*)$)/
 const bindRe = /^(v-bind:|:)/
 const tagRE = /\{\{\{((?:.|\n)+?)\}\}\}|\{\{((?:.|\n)+?)\}\}/g
+const commonTagRE = /^(div|p|span|img|a|b|i|br|ul|ol|li|h1|h2|h3|h4|h5|h6|code|pre|table|th|td|tr|form|label|input|select|option|nav|article|section|header|footer|button|textarea)$/i
+const reservedTagRE = /^(slot|partial|component)$/i
 
-function compileElement(node) {
-    if (node.hasAttributes()) {
+function compileElement(node, vm) {   
+    const tag = node.tagName.toLowerCase() 
+    if (!commonTagRE.test(tag) && !reservedTagRE.test(tag)) {    
+        if (vm.$options.components[tag]) {
+            des.push({
+                vm,
+                el: node,
+                name: 'component',
+                expression: tag,
+                def: handlers.component,
+                modifiers: {
+                    literal: true
+                }
+            })
+        } 
+    } else if (tag === 'slot') {
+        des.push({
+            vm,
+            el: node,
+            arg: undefined,
+            name: 'slot',
+            attr: undefined,
+            expression: '',
+            def: handlers.slot
+        })
+    } else if (node.hasAttributes()) {       
         let matched
         let isFor = false
         const attrs = toArray(node.attributes)
-        attrs.forEach((attr) => {
+        attrs.forEach((attr) => {       
             const name = attr.name.trim()
             const value = attr.value.trim()
-
             if (onRe.test(name)) {
                 node.removeAttribute(name)
                 des.push({
+                    vm,
                     el: node,
                     arg: name.replace(onRe, ''),
                     name: 'on',
@@ -81,11 +111,10 @@ function compileElement(node) {
                     expression: value,
                     def: handlers.on
                 })
-
             } else if (bindRe.test(name)) {
-                handlers[matched[1]]
                 node.removeAttribute(name)
                 des.push({
+                    vm,
                     el: node,
                     arg: name.replace(bindRe, ''),
                     name: 'bind',
@@ -93,11 +122,11 @@ function compileElement(node) {
                     expression: value,
                     def: handlers.bind
                 })
-
             } else if (matched = name.match(dirAttrRE)) {             
                 if (name !== 'v-else') {
                     node.removeAttribute(name)
                     des.push({
+                        vm,
                         el: node,
                         arg: undefined,
                         name: name.replace(/^v-/, ''),
@@ -112,13 +141,12 @@ function compileElement(node) {
                 }
             }
         })
-        
         return isFor
     }
 }
 
-function compileTextNode(node) {
-    const tokens = parseText(node.nodeValue)
+function compileTextNode(node, vm) {
+    const tokens = parseText(node.nodeValue, vm)
     if (!tokens) {
         return
     }
@@ -126,7 +154,7 @@ function compileTextNode(node) {
     const frag = document.createDocumentFragment()
     let el
     tokens.forEach(token => {
-        el = token.tag ? processTextToken(token, node) : document.createTextNode(token.value)
+        el = token.tag ? processTextToken(token, vm) : document.createTextNode(token.value)
         frag.appendChild(el)
         if (token.tag) {
             des.push(token.descriptor)
@@ -135,7 +163,7 @@ function compileTextNode(node) {
     replace(node, frag)
 }
 // 将文档节点解释为TOKEN
-function parseText(text) {
+function parseText(text, vm) {
     let index = 0
     let lastIndex = 0
     let match
@@ -165,19 +193,19 @@ function parseText(text) {
     return tokens
 }
 
-function processTextToken(token) {
+function processTextToken(token, vm) {
     const el = document.createTextNode(' ')
     if (token.descriptor) {
         return
     }
 
     token.descriptor = {
+        vm,
         el,
         name: 'text',
         def: handlers.text,
         expression: token.value.trim()
     }
-    
     return el
 }
 
@@ -193,7 +221,7 @@ function sortDescriptors(des) {
     })
 }
 
-// 删除已经用不上的指令 如果不是v-if v-for 并且不在文档中的DOM元素删除并和相应绑定的指令 观察者函数删除
+// 删除已经用不上的指令 如果不是v-if、v-for 并且不在文档中的DOM元素删除并和相应绑定的指令、观察者函数删除
 function teardown(vm) {
     const body = document.body
     const contains = body.contains
@@ -215,4 +243,46 @@ function teardown(vm) {
     
     vm._directives = [...temp]
     temp.length = 0
+}
+
+
+export function compileProps(vm, el, propsOptions) {
+    const props = []
+    let prop, value, name
+    const keys = Object.keys(propsOptions)
+    keys.forEach(key => {
+        name = propsOptions[key]
+        prop = {
+            name,
+            path: name
+        }
+        if ((value = getBindAttr(el, name)) !== null) {
+            // 动态绑定
+            prop.dynamic = true
+            prop.raw = prop.parentPath = value
+        } else if ((value = getAttr(el, name)) !== null) {
+            // 静态绑定
+            prop.raw = value
+        }
+        props.push(prop)
+    })
+
+    vm._props = {}
+    props.forEach(prop => {
+        let {path, raw, options} = prop
+        vm._props[path] = prop
+        // 动态绑定则建一个指令 否则直接渲染
+        if (prop.dynamic) {
+            if (vm._context) {
+                des.push({
+                    vm,
+                    name: 'prop',
+                    def: handlers.prop,
+                    prop,
+                })
+            }
+        } else {
+            defineReactive(vm, prop.path, prop.raw)
+        }
+    })
 }

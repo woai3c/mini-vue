@@ -87,20 +87,23 @@ Observer.prototype = {
     }
 }
 
-function defineReactive(obj, key, val) {
+export function defineReactive(obj, key, val) {
+    
     const dep = new Dep()
 
     // 递归监听
     let childOb = observe(val)
-
+    
     Object.defineProperty(obj, key, {
         enumerable: true,
         configurable: true,
         get() {      
             // 收集对应的观察者对象
             if (Dep.target) {
+                
                 dep.depend()
                 if (childOb) {
+                    
                     childOb.dep.depend()
                 }
                 if (isArray(val)) {
@@ -113,14 +116,17 @@ function defineReactive(obj, key, val) {
             return val
         },
         set(newVal) {
+            
             if (val === newVal) {
                 return
             }
             val = newVal
             // 递归监听
             childOb = observe(newVal)
+            
             // 触发更新
             dep.notify()
+            
         }
     })
 }

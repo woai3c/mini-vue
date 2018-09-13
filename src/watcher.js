@@ -1,5 +1,5 @@
 import Dep from './dep.js'
-import {isObject, extend} from './utils.js'
+import {isObject, extend, makeGetterFn} from './utils.js'
 
 // watcher实例的ID 每个watcher实现的ID都是唯一的
 let uid = 0
@@ -11,17 +11,23 @@ export function Watcher(vm, expOrFn, callback, options) {
     if (options) {
         extend(this, options)
     }
-
+    
     this.id = uid++
     this.vm = vm
     this.expression = expOrFn   
+
+    // props需要用到
     this.sync = options? options.sync : false
+
     // 计算属性需要用到
     this.dirty = this.lazy
+
     // 存放dep实例
     this.deps = []
+
     // 存放dep的ID
     this.depIds = new Set()
+
     // 更新触发回调函数
     this.cb = callback
 
@@ -34,6 +40,7 @@ export function Watcher(vm, expOrFn, callback, options) {
         this.setter = (value) => {
             vm[expOrFn] = value
         }
+
     }
     // 在创建watcher实例时先取一次值
     this.value = this.get()
@@ -72,9 +79,11 @@ Watcher.prototype = {
         const value = this.get()
         const oldValue = this.value
         this.value = value
+      
         if (value !== oldValue || isObject(value)) {
             this.cb.call(this.vm, value, oldValue)
         }
+
     },
 
     addDep(dep) {
@@ -116,7 +125,7 @@ Watcher.prototype = {
 function parseExpression(exp) {
     exp = exp.trim()
     const res = {exp}
-    res.get = new Function('vm', 'return ' + 'vm.' + exp)
+    res.get = makeGetterFn(exp)
     return res
 }
 
@@ -142,6 +151,7 @@ function flushQueue() {
     queue.forEach(q => {
         q.run()
     })
+    
     // 重置
     waiting = false
     has = {}
@@ -149,7 +159,6 @@ function flushQueue() {
 }
 
 export function nextTick(cb, ctx) {
-    setTimeout(() => {
-        ctx? cb.call(ctx) : cb()
-    }, 0)
+    const p = Promise.resolve()
+    p.then(ctx? cb.call(ctx) : cb())
 }

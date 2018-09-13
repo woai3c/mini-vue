@@ -1,7 +1,7 @@
 import observe from './observer.js'
 import {Watcher, nextTick} from './watcher.js'
-import {toArray, isArray, addClass, extend, hasOwn, replace} from './utils.js'
-import compile from './compile.js'
+import {toArray, isArray, addClass, extend, hasOwn, replace, query, bind, firstWordtoUpper, toUpper, trimNode, isTrimmable, deepCopy} from './utils.js'
+import {compile, compileProps} from './compile.js'
 import handlers from './handlers.js'
 import Dep from './dep.js'
 
@@ -12,20 +12,81 @@ function MiniVue(options) {
 
 MiniVue.options = {
     handlers,
+    components: {},
 }
 
-//  静态方法
+// 全局方法
+
+// 混入对象
+MiniVue.mixin = function(mixin) {
+    MiniVue.options = mergeOptions(MiniVue.options, mixin)
+}
 
 // 注册全局指令
 MiniVue.directive = function registerDirective(dirName, options) {
     handlers[dirName] = options
 }
 
+MiniVue.cid = 0
+
+// 生成子组件构造函数
+MiniVue.extend = function(extendOptions) {
+    extendOptions = extendOptions || {}
+    const Super = this
+    let isFirstExtend = Super.cid === 0
+    if (isFirstExtend && extendOptions._Ctor) {
+        return extendOptions._Ctor
+    }
+
+    const name = extendOptions.name || Super.options.name
+    const Sub = new Function('return function ' + classify(name) + ' (options) { this._init(options) }')()
+    Sub.prototype = Object.create(Super.prototype)
+    Sub.prototype.constructor = Sub
+    Sub.options = mergeOptions(Super.options, extendOptions)
+    Sub['super'] = Super
+    Sub.extend = Super.extend
+    Sub.component = Super.component
+
+    if (name) {
+        Sub.options.components[name] = Sub
+    }
+
+    if (isFirstExtend) {
+        extendOptions._Ctor = Sub
+    }
+
+    return Sub
+}
+
+// 生成组件
+MiniVue.component = function(id, definition) {
+    if (!definition) {
+        return this.options['components'][id]
+    } else {
+        if (!definition.name) {
+            definition.name = id
+        }
+        
+        definition = MiniVue.extend(definition)
+        this.options['components'][id] = definition
+        return definition
+    }
+}
+
 // 原型方法
 MiniVue.prototype = {
     constructor: MiniVue,
+
     // 初始化数据和方法
     _init(options) {
+
+        this.$el = null
+        this.$parent = options.parent
+        // 根组件
+        this.$root = this.$parent? this.$parent.$root : this
+        // 存放子组件
+        this.$children = []
+
         // 存放观察者实例
         this._watchers = []
 
@@ -35,14 +96,46 @@ MiniVue.prototype = {
         // 存放指令
         this._directives = []
 
+        // 父级上下文对象
+        this._context = options._context || this.$parent
+
+        if (this.$parent) {
+            this.$parent.$children.push(this)
+        }
         // 合并参数
         options = this.$options = mergeOptions(this.constructor.options, options, this)
+        this._callHook('init')
 
+        this._initProps()
         this._initMethods()
         this._initData()
         this._initWatch()
         this._initComputed()
+        this._initEvents()
+
+        this._callHook('created')
         this._compile()
+    },
+
+    _initProps() {
+        const options = this.$options
+        let el = options.el
+        const props = options.props
+        el = options.el = query(el)
+
+        if (props && el.nodeType == 1) {
+            compileProps(this, el, props)
+        }
+    },
+
+    _initMethods() {
+        const methods = this.$options.methods? this.$options.methods : {}
+        const keys = Object.keys(methods)
+        // 将methods上的方法赋值到vm实例上
+        keys.forEach(key => {
+            // 将方法this指向绑定到vm上
+            this[key] = bind(methods[key], this)
+        })
     },
 
     _initData() {
@@ -58,17 +151,6 @@ MiniVue.prototype = {
         observe(this._data)
     },
 
-    // 初始化方法选项
-    _initMethods() {
-        const methods = this.$options.methods? this.$options.methods : {}
-        const keys = Object.keys(methods)
-        // 将methods上的方法赋值到vm实例上
-        keys.forEach(key => {
-            this[key] = methods[key]
-        })
-    },
-
-    // 初始化watch选项
     _initWatch() {
         if (this.$options.watch) {
             const watch = this.$options.watch
@@ -79,7 +161,6 @@ MiniVue.prototype = {
         }
     },
 
-    // 初始化计算属性
     _initComputed() {
         if (this.$options.computed) {
             const computed = this.$options.computed
@@ -92,6 +173,14 @@ MiniVue.prototype = {
                     set: noop
                 })
             })
+        }
+    },
+
+    _initEvents() {
+        const options = this.$options
+        // 如果是一个子组件 则检查组件上是否绑定了事件
+        if (options._asComponent) {
+            registerComponentEvents(this, options.el)
         }
     },
 
@@ -178,17 +267,31 @@ MiniVue.prototype = {
 
     $nextTick: nextTick,
 
+    // 生命周期钩子函数
+    _callHook(hook) {
+        const handlers =this.$options[hook]
+        if (handlers) {
+            handlers.forEach(handler => {
+                handler.call(this)
+            })
+        }
+    },
+
     // 解析DOM
     _compile() {
         const options = this.$options
-        options.el = this.$el = document.querySelector(options.el)
+        options.el = this.$el = query(options.el)
         const tempEl = transclude(this.$el, options)
-
         if (tempEl) {
             this.$el = tempEl
             options.el.innerHTML = ''
             replace(options.el, this.$el)
         }
+        // 解析slot
+        resolveSlots(this, options._content)
+
+        this._callHook('beforeCompile')
+
         compile(this, this.$el)
     }
 }
@@ -199,6 +302,7 @@ window.MiniVue = MiniVue
 // 空操作
 function noop() {}
 
+// 生成计算属性getter
 function makeComputedGetter(getter, vm) {
     const watcher = new Watcher(vm, getter, null, {
         lazy: true
@@ -216,17 +320,29 @@ function makeComputedGetter(getter, vm) {
 
 
 // 合并参数
-function mergeOptions(parent, child, vm) {
-    const options = {}
-    extend(options, parent)
-    let key
-    for (key in child) {
-        if (!hasOwn(parent, key)) {
+function mergeOptions(parent, child, vm) {  
+    // 深层拷贝一个新的对象 
+    const options = deepCopy(parent)
+    const keys = Object.keys(child)
+
+    keys.forEach(key => {
+        if (hasOwn(options, key)) {
+            if (isArray(options[key])) {
+                options[key] = options[key].concat(child[key])
+            } else {
+                if (typeof child[key] == 'object') {
+                    extend(options[key], child[key])
+                }          
+            }
+        } else {
             options[key] = child[key]
         }
-    }
+    })
+    
     return options
 }
+
+const specialCharRE = /[^\w\-:\.]/
 
 // 合并属性
 function mergeAttrs(from, to) {
@@ -236,7 +352,7 @@ function mergeAttrs(from, to) {
     while (i--) {
         name = attrs[i].name
         value = attrs[i].value.trim()
-        if (!to.hasAttribute(name)) {
+        if (!to.hasAttribute(name) && !specialCharRE.test(name)) {
             to.setAttribute(name, value)
         } else if (name === 'class') {
             value.split(/\s+/).forEach(cls => {
@@ -244,39 +360,127 @@ function mergeAttrs(from, to) {
             })
         }
     }
+    
 }
 
-
+// 将el内容替换为模板内容
 function transclude(el, options) {
     if (options.template) {
+        // 提取组件里的slot
+        options._content = extractContent(el)
+        
         let template = options.template.trim()
-        let frag = document.createDocumentFragment()
         const node = document.createElement('div')
         node.innerHTML = template
-
-        let child
-        while (child = node.firstChild) {
-          frag.appendChild(child)
-        }
-        trimNode(frag)
+        let frag = extractContent(node, true)
         frag = frag.cloneNode(true)
+
         const replacer = frag.firstChild
         mergeAttrs(el, replacer)
         return replacer
     }
 }
 
+const classifyRE = /(?:^|[-_\/])(\w)/g
 
-function trimNode(node) {
-    let child
-    while ((child = node.firstChild, isTrimmable(child))) {
-        node.removeChild(child)
-    }
-    while ((child = node.lastChild, isTrimmable(child))) {
-        node.removeChild(child)
+function classify(str) {
+    return str.replace(classifyRE, toUpper)
+}
+
+function registerComponentEvents(vm, el) {
+    const onRe = /^(v-on:|@)/
+    const attrs = toArray(el.attributes)
+
+    let name, value, handler
+
+    attrs.forEach(attr => {
+        name = attr.name.trim()
+        value = attr.value.trim()
+        if (onRe.test(name)) {
+            name = name.replace(onRe, '')
+            value += '.apply(this, this.$arguments)'
+            handler = statementHandler(vm._context, value)
+            vm.$on(name, handler)
+        }
+    })
+}
+
+function statementHandler(parent, value) {
+    const get = new Function('vm', 'return vm.' + value)
+    return function() {
+        parent.$arguments = toArray(arguments)
+        const result = get.call(parent, parent)
+        parent.$arguments = null
+        return result
     }
 }
 
-function isTrimmable(node) {
-    return node && (node.nodeType === 3 && !node.data.trim() || node.nodeType === 8)
+
+// 提取元素里面的内容
+function extractContent(el, asFragment) {
+    let child, rawContent
+    if (el.hasChildNodes()) { 
+        trimNode(el)
+        rawContent = asFragment ? document.createDocumentFragment() : document.createElement('div')
+
+        while (child = el.firstChild) {
+            rawContent.appendChild(child)
+        }
+    }
+    return rawContent
 }
+
+// 解析slot
+function resolveSlots(vm, content) {
+    if (!content) {
+        return
+    }
+    
+    const contents = vm._slotContents = Object.create(null)
+    let name
+    
+    toArray(content.children).forEach(el => {
+        if (name = el.getAttribute('slot')) {
+            (contents[name] || (contents[name] = [])).push(el)
+        }
+    })
+    
+    // 有名字的slot
+    for (name in contents) {
+        contents[name] = extractFragment(contents[name], content)
+    }
+
+    // 没名字的slot
+    if (content.hasChildNodes()) {
+        const nodes = content.childNodes
+        // 空文本节点直接路过
+        if (nodes.length === 1 && nodes[0].nodeType === 3 && !nodes[0].data.trim()) {
+            return
+        }
+        contents['default'] = extractFragment(content.childNodes, content)
+        
+    }
+}
+
+function extractFragment(nodes, parent) {
+    const frag = document.createDocumentFragment()
+    let div, childNodes
+    nodes = toArray(nodes)
+    
+    nodes.forEach(node => {
+        // 非空文本节点
+        if (!isTrimmable(node)) {
+            parent.removeChild(node)
+            div = document.createElement('div')
+            div.innerHTML = node.innerHTML
+            trimNode(div)
+            
+            childNodes = toArray(div.childNodes)
+            childNodes.forEach(child => {
+                frag.appendChild(child)
+            })
+        }
+    })
+    return frag
+}
+
