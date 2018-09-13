@@ -63,7 +63,7 @@
         <button @click="reset">回复</button>
         <p v-my-directive="name">新指令</p>
         <p @click="sayHi">{{comTest}}</p> -->
-
+        <p v-my-plugin="age"></p>
         <my-component :name="obj" @send="sayTest">
             <template slot="header">
                 <h1>有名字的slot</h1>
@@ -118,6 +118,31 @@
     }
 
     MiniVue.component('my-component', obj)
+
+
+    const MyPlugin = {}
+
+    MyPlugin.install = function (MiniVue, options) {
+          // 1. 添加全局方法或属性
+          MiniVue.myGlobalMethod = function () {
+             console.log('这是一个插件')
+          }
+
+          // 2. 添加全局资源
+            MiniVue.directive('my-plugin', {
+                bind() {
+                    console.log('这是一个插件指令')
+                },
+                update(value) {
+                    console.log('update' + value)
+                },
+                unbind() {
+                    console.log('unbind')
+                }
+            })
+        }
+
+    MiniVue.use(MyPlugin)
 
     const vm = new MiniVue({
         el: '#app',

@@ -24,11 +24,30 @@ MiniVue.mixin = function(mixin) {
 
 // 注册全局指令
 MiniVue.directive = function registerDirective(dirName, options) {
+    
     handlers[dirName] = options
+    
+}
+
+// 使用插件
+MiniVue.use = function (plugin) {
+    
+    if (plugin.installed) {
+        return
+    }
+    const args = toArray(arguments, 1)
+    args.unshift(this)
+
+    if (typeof plugin.install === 'function') {
+        plugin.install.apply(plugin, args)
+    } else {
+        plugin.apply(null, args)
+    }
+    plugin.installed = true
+    return this
 }
 
 MiniVue.cid = 0
-
 // 生成子组件构造函数
 MiniVue.extend = function(extendOptions) {
     extendOptions = extendOptions || {}

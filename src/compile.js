@@ -1,18 +1,14 @@
 import Directive from './directives.js'
 import {toArray, replace, getAttr, getBindAttr} from './utils.js'
 import {defineReactive} from './observer.js'
+import handlers from './handlers.js'
 
-let handlers
 // 指令描述符容器
 const des = []
 // 用来判断当前是否在解析指令
 let pending = false
 
 export function compile(vm, el) {
-    if (!handlers) {
-        handlers = vm.$options.handlers
-    }
-        
     // 如果当前节点不是v-for指令 则继续解析子节点
     if (!compileNode(el, vm)) {
         if (el.hasChildNodes()) {
@@ -125,6 +121,7 @@ function compileElement(node, vm) {
             } else if (matched = name.match(dirAttrRE)) {             
                 if (name !== 'v-else') {
                     node.removeAttribute(name)
+                    
                     des.push({
                         vm,
                         el: node,
