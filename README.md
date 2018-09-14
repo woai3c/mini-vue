@@ -12,7 +12,7 @@
 Vue构造函数 观察者observer 观察者watcher 指令系统directive  DOM解析compile watcher与observer之间的联系者dep
 我们来看看他们之间的关系
 
-![vue流程图](https://github.com/woai3c/mini-vue/blob/dev/imgs/vue.svg)
+![vue流程图](https://github.com/woai3c/mini-vue/blob/master/imgs/vue.svg)
 
 如果不是想自己实现一个mvvm框架 Vue的源码不用细读 只要明白主线的运行过程就行了 想要熟练使用Vue看官方文档即可<br>
 想了解主线流程的 可以看看我的v0.1版本 300行代码 完整的实现了双向数据绑定的流程 还有3条指令的实现过程 其实其他的指令即使没实现 也没什么关系 主流程明白即可<br>
