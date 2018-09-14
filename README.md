@@ -13,6 +13,7 @@ MiniVue.mixin
 ```
 
 * mixin filter component也可以局部注册 在new一个实例时提供以下选项即可
+
 ```
 filters
 components
@@ -20,6 +21,7 @@ mixin
 ``
 
 * 实例方法
+
 ```
 vm.$watch
 vm.$set
@@ -31,6 +33,7 @@ vm.$emit
 vm.$nextTick
 ```
 * 实现指令
+
 ```
 v-text
 v-html
@@ -42,6 +45,7 @@ v-on
 v-bind
 v-model
 ```
+
 * 计算属性
 
 
