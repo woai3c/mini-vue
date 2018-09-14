@@ -18,7 +18,7 @@ MiniVue.mixin
 filters
 components
 mixin
-``
+```
 
 * 实例方法
 
