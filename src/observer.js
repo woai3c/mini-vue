@@ -2,7 +2,6 @@ import Dep from './dep.js'
 import {def, hasOwn, isArray} from './utils.js'
 
 // 在数组原型上增加一点改动
-
 const arrayProto = Array.prototype
 const arrayMethods = Object.create(arrayProto)
 
@@ -47,10 +46,11 @@ export default function observe(value) {
     if (!value || typeof value !== 'object') {
         return
     }
+
     let ob
     if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
         ob = value.__ob__
-    } else  {
+    } else if (!value._isVue) {
         ob = new Observer(value)
     }
 
@@ -68,7 +68,9 @@ function Observer(value) {
         this.observeArray(value)
     } else {
         this.walk(value)
+        
     }
+    
 }
 
 
@@ -88,9 +90,7 @@ Observer.prototype = {
 }
 
 export function defineReactive(obj, key, val) {
-    
     const dep = new Dep()
-
     // 递归监听
     let childOb = observe(val)
     
@@ -100,10 +100,8 @@ export function defineReactive(obj, key, val) {
         get() {      
             // 收集对应的观察者对象
             if (Dep.target) {
-                
                 dep.depend()
                 if (childOb) {
-                    
                     childOb.dep.depend()
                 }
                 if (isArray(val)) {
@@ -116,14 +114,12 @@ export function defineReactive(obj, key, val) {
             return val
         },
         set(newVal) {
-            
             if (val === newVal) {
                 return
             }
             val = newVal
             // 递归监听
             childOb = observe(newVal)
-            
             // 触发更新
             dep.notify()
             

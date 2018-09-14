@@ -1,5 +1,5 @@
 import Dep from './dep.js'
-import {isObject, extend, makeGetterFn} from './utils.js'
+import {isObject, extend, makeGetterFn, isArray} from './utils.js'
 
 // watcher实例的ID 每个watcher实现的ID都是唯一的
 let uid = 0
@@ -15,10 +15,10 @@ export function Watcher(vm, expOrFn, callback, options) {
     this.id = uid++
     this.vm = vm
     this.expression = expOrFn   
-
+    
     // props需要用到
     this.sync = options? options.sync : false
-
+    
     // 计算属性需要用到
     this.dirty = this.lazy
 
@@ -40,7 +40,6 @@ export function Watcher(vm, expOrFn, callback, options) {
         this.setter = (value) => {
             vm[expOrFn] = value
         }
-
     }
     // 在创建watcher实例时先取一次值
     this.value = this.get()
@@ -48,9 +47,13 @@ export function Watcher(vm, expOrFn, callback, options) {
 
 Watcher.prototype = {
     get() {
+        const vm = this.vm
         // 在读取值时先将观察者对象赋值给Dep.target 否则Dep.target为空 不会触发收集依赖
         Dep.target = this
-        const value =  this.getter.call(this.vm, this.vm)
+        let value =  this.getter.call(vm, vm)
+        if (this.filters) {
+            value = vm._applyFilters(value, this.filters)
+        }
         // 触发依赖后置为空
         Dep.target = null
         return value
@@ -65,7 +68,6 @@ Watcher.prototype = {
         // 如果没有同步标记 则异步更新
         // 假设原来在一个函数里同时执行age++ 4次 则会执行回调函数4次 
         // 异步更新则会执行一次 优化性能
-        
         if (this.lazy) {
             this.dirty = true
         } else if (!this.sync) {
@@ -79,11 +81,9 @@ Watcher.prototype = {
         const value = this.get()
         const oldValue = this.value
         this.value = value
-      
         if (value !== oldValue || isObject(value)) {
             this.cb.call(this.vm, value, oldValue)
         }
-
     },
 
     addDep(dep) {
@@ -140,7 +140,7 @@ function pushWatcher(watcher) {
         has[id] = queue.length
         queue.push(watcher)
     }
-
+    
     if (!waiting) {
         waiting = true
         nextTick(flushQueue)
@@ -160,5 +160,7 @@ function flushQueue() {
 
 export function nextTick(cb, ctx) {
     const p = Promise.resolve()
-    p.then(ctx? cb.call(ctx) : cb())
+    p.then(() => {
+        ctx? cb.call(ctx) : cb()
+    })
 }

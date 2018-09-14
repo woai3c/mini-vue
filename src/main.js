@@ -2,7 +2,7 @@ import observe from './observer.js'
 import {Watcher, nextTick} from './watcher.js'
 import {toArray, isArray, addClass, extend, hasOwn, replace, query, bind, firstWordtoUpper, toUpper, trimNode, isTrimmable, deepCopy} from './utils.js'
 import {compile, compileProps} from './compile.js'
-import handlers from './handlers.js'
+import directives from './directives.js'
 import Dep from './dep.js'
 
 // MiniVue构造函数 参数是一个对象
@@ -11,27 +11,25 @@ function MiniVue(options) {
 }
 
 MiniVue.options = {
-    handlers,
+    directives,
     components: {},
+    filters: {},
 }
 
 // 全局方法
 
 // 混入对象
 MiniVue.mixin = function(mixin) {
-    MiniVue.options = mergeOptions(MiniVue.options, mixin)
+    this.options = mergeOptions(this.options, mixin)
 }
 
 // 注册全局指令
-MiniVue.directive = function registerDirective(dirName, options) {
-    
-    handlers[dirName] = options
-    
+MiniVue.directive = function(dirName, options) {
+    this.options.directives[dirName] = options
 }
 
 // 使用插件
 MiniVue.use = function (plugin) {
-    
     if (plugin.installed) {
         return
     }
@@ -77,19 +75,28 @@ MiniVue.extend = function(extendOptions) {
     return Sub
 }
 
-// 生成组件
-MiniVue.component = function(id, definition) {
+// 全局 生成组件
+MiniVue.component = function(id, definition, isPrivate) {
     if (!definition) {
         return this.options['components'][id]
     } else {
         if (!definition.name) {
             definition.name = id
         }
-        
+
         definition = MiniVue.extend(definition)
-        this.options['components'][id] = definition
+
+        if (!isPrivate) {
+            this.options['components'][id] = definition
+        }
+  
         return definition
     }
+}
+
+// 注册过滤器
+MiniVue.filter = function(id, fn) {
+    this.options.filters[id] = fn
 }
 
 // 原型方法
@@ -98,9 +105,10 @@ MiniVue.prototype = {
 
     // 初始化数据和方法
     _init(options) {
-
         this.$el = null
         this.$parent = options.parent
+        // MiniVue实例
+        this._isMiniVue = true
         // 根组件
         this.$root = this.$parent? this.$parent.$root : this
         // 存放子组件
@@ -121,19 +129,37 @@ MiniVue.prototype = {
         if (this.$parent) {
             this.$parent.$children.push(this)
         }
+        
         // 合并参数
         options = this.$options = mergeOptions(this.constructor.options, options, this)
         this._callHook('init')
-
-        this._initProps()
-        this._initMethods()
-        this._initData()
+        
+        this._initMixins()
+        this._initComponents()    
+        this._initProps()      
+        this._initMethods()     
+        this._initData()      
         this._initWatch()
         this._initComputed()
         this._initEvents()
 
         this._callHook('created')
         this._compile()
+    },
+    // 局部mixin
+    _initMixins() {
+        let options = this.$options
+        if (options.mixin) {
+            this.$options = mergeOptions(options, options.mixin)         
+        }
+    },
+    // 局部componet
+    _initComponents() {
+        const components = this.$options.components
+        const keys = Object.keys(components)
+        keys.forEach(key => {
+            components[key] = MiniVue.component(key, components[key], true)
+        })
     },
 
     _initProps() {
@@ -158,10 +184,11 @@ MiniVue.prototype = {
     },
 
     _initData() {
+        
         let data = this.$options.data
         data = this._data = typeof data === 'function'? data() : data || {}
         const keys = Object.keys(data)
-
+   
         // 对每一个key实现代理 即可通过vm.msg来访问vm._data.msg
         keys.forEach(key => {
             this._proxy(this, '_data', key)
@@ -286,10 +313,26 @@ MiniVue.prototype = {
 
     $nextTick: nextTick,
 
+    // 过滤器
+    _applyFilters(value, filters) {
+        const filtersObj = this.$options.filters? this.$options.filters : {}
+        let handler
+        filters.forEach(filter => {
+            handler = filtersObj[filter.name]
+            if (handler) {
+                value = handler.call(this, value)
+            }
+        })
+        return value
+    }, 
+
     // 生命周期钩子函数
     _callHook(hook) {
         const handlers =this.$options[hook]
-        if (handlers) {
+
+        if (typeof handlers === 'function') {
+            handlers.call(this)
+        } else if (handlers) {
             handlers.forEach(handler => {
                 handler.call(this)
             })
@@ -308,9 +351,7 @@ MiniVue.prototype = {
         }
         // 解析slot
         resolveSlots(this, options._content)
-
         this._callHook('beforeCompile')
-
         compile(this, this.$el)
     }
 }
@@ -339,7 +380,8 @@ function makeComputedGetter(getter, vm) {
 
 
 // 合并参数
-function mergeOptions(parent, child, vm) {  
+function mergeOptions(parent, child, vm) {
+      
     // 深层拷贝一个新的对象 
     const options = deepCopy(parent)
     const keys = Object.keys(child)
@@ -457,7 +499,6 @@ function resolveSlots(vm, content) {
     
     const contents = vm._slotContents = Object.create(null)
     let name
-    
     toArray(content.children).forEach(el => {
         if (name = el.getAttribute('slot')) {
             (contents[name] || (contents[name] = [])).push(el)

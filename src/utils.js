@@ -118,7 +118,12 @@ export function deepCopy(obj) {
     if (typeof obj != 'object') {
         return obj
     }
-    var newobj = {};
+    let newobj = {}
+
+    if (isArray(obj)) {
+        newobj = []
+    } 
+
     for (let key in obj) {
         newobj[key] = deepCopy(obj[key])
     }

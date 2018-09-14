@@ -1,7 +1,6 @@
-import Directive from './directives.js'
+import Directive from './directive.js'
 import {toArray, replace, getAttr, getBindAttr} from './utils.js'
 import {defineReactive} from './observer.js'
-import handlers from './handlers.js'
 
 // 指令描述符容器
 const des = []
@@ -29,10 +28,11 @@ export function compile(vm, el) {
             descriptor.vm._directives.push(dir)  
         }
         pending = false
+        vm._callHook('compiled')
         // JS主线程执行完再进行废弃指令回收
         setTimeout(() => {
-            vm._callHook('compiled')
             teardown(vm)
+            vm._callHook('destroyed')
         }, 0)
     }
 }
@@ -65,6 +65,7 @@ const commonTagRE = /^(div|p|span|img|a|b|i|br|ul|ol|li|h1|h2|h3|h4|h5|h6|code|p
 const reservedTagRE = /^(slot|partial|component)$/i
 
 function compileElement(node, vm) {   
+    const directives = vm.$options.directives
     const tag = node.tagName.toLowerCase() 
     if (!commonTagRE.test(tag) && !reservedTagRE.test(tag)) {    
         if (vm.$options.components[tag]) {
@@ -73,7 +74,7 @@ function compileElement(node, vm) {
                 el: node,
                 name: 'component',
                 expression: tag,
-                def: handlers.component,
+                def: directives.component,
                 modifiers: {
                     literal: true
                 }
@@ -87,7 +88,7 @@ function compileElement(node, vm) {
             name: 'slot',
             attr: undefined,
             expression: '',
-            def: handlers.slot
+            def: directives.slot
         })
     } else if (node.hasAttributes()) {       
         let matched
@@ -105,21 +106,67 @@ function compileElement(node, vm) {
                     name: 'on',
                     attr: name,
                     expression: value,
-                    def: handlers.on
+                    def: directives.on
                 })
             } else if (bindRe.test(name)) {
                 node.removeAttribute(name)
-                des.push({
+                // 针对过滤器
+                const values = value.split('|')
+                const temp = {
                     vm,
                     el: node,
                     arg: name.replace(bindRe, ''),
                     name: 'bind',
                     attr: name,
-                    expression: value,
-                    def: handlers.bind
-                })
+                    def: directives.bind
+                }
+
+                if (value.length > 1) {
+                    const expression = values.shift()
+                    const filters = []
+                    values.forEach(value => {
+                        filters.push({
+                            name: value.trim()
+                        })
+                    })
+
+                    temp.expression = expression
+                    temp.filters = filters
+                } else {
+                    temp.expression = value
+                }
+
+                des.push(temp)
             } else if (matched = name.match(dirAttrRE)) {             
-                if (name !== 'v-else') {
+                if (name == 'v-text') {
+                    node.removeAttribute(name)
+                    const values = value.split('|')
+                    const temp = {
+                        vm,
+                        el: node,
+                        arg: name.replace(bindRe, ''),
+                        name: 'text',
+                        attr: name,
+                        def: directives.text
+                    }
+
+                    if (value.length > 1) {
+                        const expression = values.shift()
+                        const filters = []
+                        values.forEach(value => {
+                            filters.push({
+                                name: value.trim()
+                            })
+                        })
+
+                        temp.expression = expression
+                        temp.filters = filters
+                    } else {
+                        temp.expression = value
+                    }
+
+                    des.push(temp)
+                } else if (name !== 'v-else') {
                     node.removeAttribute(name)
                     
                     des.push({
@@ -129,7 +176,7 @@ function compileElement(node, vm) {
                         name: name.replace(/^v-/, ''),
                         attr: name,
                         expression: value,
-                        def: handlers[matched[1]]
+                        def: directives[matched[1]]
                     })
                 }
 
@@ -191,18 +238,36 @@ function parseText(text, vm) {
 }
 
 function processTextToken(token, vm) {
+    const directives = vm.$options.directives
     const el = document.createTextNode(' ')
     if (token.descriptor) {
         return
     }
-
+    // 针对过滤器
+    const values = token.value.split('|')
     token.descriptor = {
         vm,
         el,
         name: 'text',
-        def: handlers.text,
-        expression: token.value.trim()
+        def: directives.text,
     }
+
+    if (values.length > 1) {
+        const value = values.shift()
+        const filters = []
+        
+        values.forEach(value => {
+            filters.push({
+                name: value.trim()
+            })
+        })
+
+        token.descriptor.expression = value.trim()
+        token.descriptor.filters = filters
+    } else {
+        token.descriptor.expression = token.value.trim()
+    }
+
     return el
 }
 
@@ -244,6 +309,7 @@ function teardown(vm) {
 
 
 export function compileProps(vm, el, propsOptions) {
+    const directives = vm.$options.directives
     const props = []
     let prop, value, name
     const keys = Object.keys(propsOptions)
@@ -274,7 +340,7 @@ export function compileProps(vm, el, propsOptions) {
                 des.push({
                     vm,
                     name: 'prop',
-                    def: handlers.prop,
+                    def: directives.prop,
                     prop,
                 })
             }
