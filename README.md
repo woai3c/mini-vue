@@ -1,5 +1,50 @@
 ## 实现一个迷你版的vue
 
+### 实现的功能
+* 全局方法
+```
+MiniVue.extend
+MiniVue.nextTick
+MiniVue.directive
+MiniVue.filter
+MiniVue.component
+MiniVue.use
+MiniVue.mixin
+```
+
+* mixin filter component也可以局部注册 在new一个实例时提供以下选项即可
+```
+filters
+components
+mixin
+``
+
+* 实例方法
+```
+vm.$watch
+vm.$set
+vm.$delete
+vm.$on
+vm.$once
+vm.$off
+vm.$emit
+vm.$nextTick
+```
+* 实现指令
+```
+v-text
+v-html
+v-show
+v-if
+v-else
+v-for
+v-on
+v-bind
+v-model
+```
+* 计算属性
+
+
 ### 如何阅读源码
 
 阅读源码要带有目的去看 不能毫无目的的去看源码 以免掉进无尽的细节陷阱中而出不来
