@@ -1,7 +1,7 @@
 ## 实现一个迷你版的vue
 
 ### 实现的功能
-* 全局方法
+#### 全局方法
 ```
 MiniVue.extend
 MiniVue.nextTick
@@ -12,7 +12,7 @@ MiniVue.use
 MiniVue.mixin
 ```
 
-* mixin filter component也可以局部注册 在new一个实例时提供以下选项即可
+#### mixin filter component也可以局部注册 在new一个实例时提供以下选项即可
 
 ```
 filters
@@ -20,7 +20,7 @@ components
 mixin
 ```
 
-* 实例方法
+#### 实例方法
 
 ```
 vm.$watch
@@ -32,7 +32,7 @@ vm.$off
 vm.$emit
 vm.$nextTick
 ```
-* 实现指令
+#### 实现指令
 
 ```
 v-text
@@ -46,7 +46,7 @@ v-bind
 v-model
 ```
 
-* 计算属性
+#### 计算属性
 
 
 ### 如何阅读源码
