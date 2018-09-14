@@ -1,3 +1,7 @@
+## 文档
+* [数据双向绑定](https://github.com/woai3c/mini-vue/blob/master/doc/%E6%95%B0%E6%8D%AE%E5%8F%8C%E5%90%91%E7%BB%91%E5%AE%9A.md)
+
+
 ## 实现一个迷你版的vue
 
 ### 实现的功能
