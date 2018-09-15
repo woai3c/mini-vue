@@ -7,13 +7,13 @@
 ### 实现的功能
 #### 全局方法
 ```
-MiniVue.extend
-MiniVue.nextTick
-MiniVue.directive
-MiniVue.filter
-MiniVue.component
-MiniVue.use
-MiniVue.mixin
+MiniVue.extend(继承MiniVue 产生一个新的子类构造函数)
+MiniVue.nextTick(在实例过程完成后运行)
+MiniVue.directive(注册自定义指令)
+MiniVue.filter (过滤器)
+MiniVue.component(组件 包括slot props)
+MiniVue.use(插件)
+MiniVue.mixin(混入)
 ```
 
 #### mixin filter component也可以局部注册 在new一个实例时提供以下选项即可
@@ -51,6 +51,7 @@ v-model
 ```
 
 #### 计算属性
+计算属性用法也和Vue一样
 
 ### 以上实现的功能用法和Vue一模一样
 
