@@ -7,7 +7,7 @@
 
 
 const vm = new Vue({
-  el: #app,
+  el: '#app',
   data: {
     name: '小明'
   },
@@ -52,7 +52,7 @@ div里的值也会变成小马
   ```
 * 然后会将这个描述符当作参数传入directive类 生成一个指令实例 
 * 指令实例执行bind方法 bind方法会将表达式 指令处理函数 以及相关的一些参数传给watcher生成一个watcher实例
-* watcher首次会执行get方法 对表达式进行求值 也就是vm.name 然后将得到的值将给update方法 
+* watcher首次会执行get方法 对表达式进行求值 也就是取得vm.name的值 然后将得到的值将给update方法 
 * update方法将值传入处理函数对DOM进行更新 这样就完成了第一次渲染 
 
 ### 实例化完成后
