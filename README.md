@@ -7,13 +7,20 @@
 ### 实现的功能
 #### 全局方法
 ```
-MiniVue.extend(继承MiniVue 产生一个新的子类构造函数)
-MiniVue.nextTick(在实例过程完成后运行)
-MiniVue.directive(注册自定义指令)
-MiniVue.filter (过滤器)
-MiniVue.component(组件 包括slot props)
-MiniVue.use(插件)
-MiniVue.mixin(混入)
+// 继承MiniVue 产生一个新的子类构造函数
+MiniVue.extend
+// 在实例化过程完成后运行
+MiniVue.nextTick
+// 注册自定义指令
+MiniVue.directive
+// 过滤器
+MiniVue.filter 
+// 组件 包括slot props
+MiniVue.component
+// 插件
+MiniVue.use
+// 混入
+MiniVue.mixin
 ```
 
 #### mixin filter component也可以局部注册 在new一个实例时提供以下选项即可
@@ -36,7 +43,7 @@ vm.$off
 vm.$emit
 vm.$nextTick
 ```
-#### 实现指令
+#### 指令
 
 ```
 v-text
@@ -63,8 +70,14 @@ v-model
 建议从一个Vue实例化的过程开始 一直跟踪这条主线 直到结尾为止(一定要打断点 debugger 我打了100多个断点才看懂主流程) 各种分枝暂时不要管 等把主线理解清楚了 细枝末节自然不在话下
 
 ### Vue1.0模块
-在Vue主线里有几大模块（除去模板和SLOT）
-Vue构造函数 观察者observer 观察者watcher 指令系统directive  DOM解析compile watcher与observer之间的联系者dep
+在Vue主线里和数据双向绑定有关的有以下几个模块
+* Vue构造函数
+* 观察者observer
+* 观察者watcher
+* 指令系统 directive类和directives指令函数集合
+* DOM解析compile 
+* watcher与observer之间的联系者dep
+
 我们来看看他们之间的关系
 
 ![vue流程图](https://github.com/woai3c/mini-vue/blob/master/imgs/vue.svg)
