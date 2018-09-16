@@ -1,0 +1,24 @@
+Vue的组件其实就是Vue的一个子类实例
+```
+// 生成子组件构造函数
+const Sub = new Function('return function ' + classify(name) + ' (options) { this._init(options) }')()
+Sub.prototype = Object.create(Super.prototype)
+Sub.prototype.constructor = Sub
+Sub.options = mergeOptions(Super.options, extendOptions)
+Sub['super'] = Super
+Sub.extend = Super.extend
+Sub.component = Super.component
+```
+用我写的代码来看一下 在MiniVue.extend这个方法里 会建立一个构造函数 这个函数继承了MiniVue的原型 然后返回这个新建的构造函数
+要建立一个组件的时候 直接new这个构造函数 就会产生一个继承了MiniVue原型的实例 
+
+```
+<div id="app">
+  <my-component></my-component>
+</div>
+```
+假设在HTML里遇到一个组件 会怎么解析？
+首先用compile解析<my-component></my-component>的时候 会使用正则 排除遇到的标签不是div p table这些标签 然后会判定这是一个组件
+并且把它当成一个指令来处理 有和组件对应的处理函数来处理它
+具体怎么处理可以看一下源码
+
