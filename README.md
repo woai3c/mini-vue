@@ -61,6 +61,15 @@ v-model
 #### 计算属性
 计算属性用法也和Vue一样
 
+#### 生命周期
+```
+init
+created
+beforeCompiled
+compiled
+destroyed
+```
+
 ### 以上实现的功能用法和Vue一模一样
 
 ### 如何阅读源码
