@@ -38,4 +38,8 @@ var person = {
 person.name = 'Homer';
 person.age = 51;
 ```
+
+执行上面的代码，我们惊讶地发现，改变JavaScript对象的状态，会导致DOM结构作出对应的变化！这让我们的关注点从如何操作DOM变成了如何更新JavaScript对象的状态，而操作JavaScript对象比DOM简单多了！
+
+这就是MVVM的设计思想：关注Model的变化，让MVVM框架去自动更新DOM的状态，从而把开发者从操作DOM的繁琐步骤中解脱出来！
 ![mvvm](https://github.com/woai3c/mini-vue/blob/master/imgs/mvvm.jpg)
