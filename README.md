@@ -3,6 +3,10 @@
 * [Vue主流程走向](https://github.com/woai3c/mini-vue/blob/master/doc/Vue%E7%9A%84%E4%B8%BB%E6%B5%81%E7%A8%8B%E8%B5%B0%E5%90%91.md)
 * [组件](https://github.com/woai3c/mini-vue/blob/master/doc/%E7%BB%84%E4%BB%B6.md)
 * [nextTick异步更新](https://github.com/woai3c/mini-vue/blob/master/doc/nextTick%E5%BC%82%E6%AD%A5%E6%9B%B4%E6%96%B0.md)
+
+## MVVM
+[先来科普一下MVVM的概念及原理](https://github.com/woai3c/mini-vue/blob/master/doc/mvvm.md)
+
 ## 实现一个迷你版的vue
 
 ### 实现的功能
