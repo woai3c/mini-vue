@@ -1,15 +1,41 @@
-MVVM 由 Model，View，ViewModel 三部分构成，Model 层代表数据模型，也可以在Model中定义数据修改和操作的业务逻辑
-
-View 代表UI 组件，它负责将数据模型转化成UI 展现出来
-
-ViewModel 是一个同步View 和 Model的对象
-
-在MVVM架构下，View 和 Model 之间并没有直接的联系，而是通过ViewModel进行交互，Model 和 ViewModel 之间的交互是双向的
-
-因此View 数据的变化会同步到Model中，而Model 数据的变化也会立即反应到View 上
-
-ViewModel 通过双向数据绑定把 View 层和 Model 层连接了起来，而View 和 Model 之间的同步工作完全是自动的，无需人为干涉
-
+MVVM最早由微软提出来，它借鉴了桌面应用程序的MVC思想，在前端页面中，把Model用纯JavaScript对象表示，View负责显示，两者做到了最大限度的分离
+把Model和View关联起来的就是ViewModel。ViewModel负责把Model的数据同步到View显示出来，还负责把View的修改同步回Model
+View 和 Model 之间的同步工作完全是自动的，无需人为干涉
 因此开发者只需关注业务逻辑，不需要手动操作DOM, 不需要关注数据状态的同步问题，复杂的数据状态维护完全由 MVVM 来统一管理
+ViewModel如何编写？需要用JavaScript编写一个通用的ViewModel，这样，就可以复用整个MVVM模型了
 
+一个MVVM框架和jQuery操作DOM相比有什么区别？
+我们先看用jQuery实现的修改两个DOM节点的例子：
+```
+<!-- HTML -->
+<p>Hello, <span id="name">Bart</span>!</p>
+<p>You are <span id="age">12</span>.</p>
+
+Hello, Bart!
+
+You are 12.
+```
+用jQuery修改name和age节点的内容：
+```
+var name = 'Homer';
+var age = 51;
+
+$('#name').text(name);
+$('#age').text(age);
+```
+
+如果我们使用MVVM框架来实现同样的功能，我们首先并不关心DOM的结构，而是关心数据如何存储。最简单的数据存储方式是使用JavaScript对象：
+```
+var person = {
+    name: 'Bart',
+    age: 12
+}
+```
+我们把变量person看作Model，把HTML某些DOM节点看作View，并假定它们之间被关联起来了。
+
+要把显示的name从Bart改为Homer，把显示的age从12改为51，我们并不操作DOM，而是直接修改JavaScript对象：
+```
+person.name = 'Homer';
+person.age = 51;
+```
 ![mvvm](https://github.com/woai3c/mini-vue/blob/master/imgs/mvvm.jpg)
