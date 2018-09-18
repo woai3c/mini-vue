@@ -2,7 +2,7 @@
 * [数据双向绑定](https://github.com/woai3c/mini-vue/blob/master/doc/%E6%95%B0%E6%8D%AE%E5%8F%8C%E5%90%91%E7%BB%91%E5%AE%9A.md)
 * [Vue主流程走向](https://github.com/woai3c/mini-vue/blob/master/doc/Vue%E7%9A%84%E4%B8%BB%E6%B5%81%E7%A8%8B%E8%B5%B0%E5%90%91.md)
 * [组件](https://github.com/woai3c/mini-vue/blob/master/doc/%E7%BB%84%E4%BB%B6.md)
-
+* [nextTick异步更新](https://github.com/woai3c/mini-vue/blob/master/doc/nextTick%E5%BC%82%E6%AD%A5%E6%9B%B4%E6%96%B0.md)
 ## 实现一个迷你版的vue
 
 ### 实现的功能
