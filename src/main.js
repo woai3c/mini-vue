@@ -144,7 +144,9 @@ MiniVue.prototype = {
         this._initEvents()
 
         this._callHook('created')
-        this._compile()
+        if (options.el) {
+            this._compile()
+        }
     },
     // 局部mixin
     _initMixins() {
