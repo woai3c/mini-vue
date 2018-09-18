@@ -1,6 +1,7 @@
 MVVM最早由微软提出来，它借鉴了桌面应用程序的MVC思想，在前端页面中，把Model用纯JavaScript对象表示，View负责显示，两者做到了最大限度的分离
-把Model和View关联起来的就是ViewModel。ViewModel负责把Model的数据同步到View显示出来，还负责把View的修改同步回Model
-View 和 Model 之间的同步工作完全是自动的，无需人为干涉
+把Model和View关联起来的就是ViewModel。<br>
+ViewModel负责把Model的数据同步到View显示出来，还负责把View的修改同步回Model<br>
+View 和 Model 之间的同步工作完全是自动的，无需人为干涉<br>
 因此开发者只需关注业务逻辑，不需要手动操作DOM, 不需要关注数据状态的同步问题，复杂的数据状态维护完全由 MVVM 来统一管理
 ViewModel如何编写？需要用JavaScript编写一个通用的ViewModel，这样，就可以复用整个MVVM模型了
 
@@ -42,4 +43,5 @@ person.age = 51;
 执行上面的代码，我们惊讶地发现，改变JavaScript对象的状态，会导致DOM结构作出对应的变化！这让我们的关注点从如何操作DOM变成了如何更新JavaScript对象的状态，而操作JavaScript对象比DOM简单多了！
 
 这就是MVVM的设计思想：关注Model的变化，让MVVM框架去自动更新DOM的状态，从而把开发者从操作DOM的繁琐步骤中解脱出来！
+下图可以很好的解释view viewModel model之间的关系
 ![mvvm](https://github.com/woai3c/mini-vue/blob/master/imgs/mvvm.jpg)
