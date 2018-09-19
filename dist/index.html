@@ -6,7 +6,7 @@
 </head>
 </html>
 <body>
-   <div id="app">
+   <div id="app"> 
         <p>姓名：{{name}} {{obj.a.msg}}</p>
         <p>年龄：{{age}}</p>
         <p>地址: {{address}}</p>
@@ -77,7 +77,7 @@
         <p>{{obj.a.msg | capitalize}}</p>
         <p :name="obj.a.msg | capitalize">haha</p>
     </div>
-<script type="text/javascript" src="mini-vue.min.js"></script></body>
+<script type="text/javascript" src="mini-vue.js"></script></body>
 <script>
     const objd = {
         bind() {
@@ -92,7 +92,7 @@
     }
 
     // 注册全局指令
-    MiniVue.directive('my-directive', objd)
+    // MiniVue.directive('my-directive', objd)
 
     MiniVue.mixin({
         methods: {
@@ -109,11 +109,15 @@
                 content: '这是一个子组件'
             }
         },
+        directives: {
+            'my-directive': objd
+        },
         template: '\
                     <div class="blog-post">\
                         <p @click="test">{{content}}</p>\
                         <p>{{name.a.msg}}</p>\
                         <slot name="header"></slot>\
+                        <p v-my-directive="content">新指令</p>\
                         <slot></slot>\
                     </div>',
         methods: {
@@ -188,6 +192,9 @@
         destroyed() {
             console.log('destroyed')
         },
+        directives: {
+            'my-directive': objd
+        },
         methods: {
             increase() {
                 this.newAge++
@@ -227,6 +234,11 @@
                 newMixin() {
                     console.log('newMixin')
                 }
+            }
+        },
+        computed: {
+            comTest() {
+                return this.age + ' ' + this.name
             }
         }
     })

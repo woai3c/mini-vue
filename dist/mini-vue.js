@@ -37,6 +37,7 @@ MiniVue.use = function (plugin) {
 MiniVue.cid = 0
 // 生成子组件构造函数
 MiniVue.extend = function(extendOptions) {
+    
     extendOptions = extendOptions || {}
     const Super = this
     let isFirstExtend = Super.cid === 0
@@ -45,6 +46,7 @@ MiniVue.extend = function(extendOptions) {
     }
 
     const name = extendOptions.name || Super.options.name
+    
     const Sub = new Function('return function ' + classify(name) + ' (options) { this._init(options) }')()
     Sub.prototype = Object.create(Super.prototype)
     Sub.prototype.constructor = Sub
@@ -370,51 +372,6 @@ function makeComputedGetter(getter, vm) {
 }
 
 
-// 合并参数
-function mergeOptions(parent, child, vm) {
-      
-    // 深层拷贝一个新的对象 
-    const options = deepCopy(parent)
-    const keys = Object.keys(child)
-
-    keys.forEach(key => {
-        if (hasOwn(options, key)) {
-            if (isArray(options[key])) {
-                options[key] = options[key].concat(child[key])
-            } else {
-                if (typeof child[key] == 'object') {
-                    extend(options[key], child[key])
-                }          
-            }
-        } else {
-            options[key] = child[key]
-        }
-    })
-    
-    return options
-}
-
-const specialCharRE = /[^\w\-:\.]/
-
-// 合并属性
-function mergeAttrs(from, to) {
-    const attrs = from.attributes
-    let i = attrs.length
-    let name, value
-    while (i--) {
-        name = attrs[i].name
-        value = attrs[i].value.trim()
-        if (!to.hasAttribute(name) && !specialCharRE.test(name)) {
-            to.setAttribute(name, value)
-        } else if (name === 'class') {
-            value.split(/\s+/).forEach(cls => {
-                addClass(to, cls)
-            })
-        }
-    }
-    
-}
-
 // 将el内容替换为模板内容
 function transclude(el, options) {
     if (options.template) {
@@ -534,7 +491,6 @@ function extractFragment(nodes, parent) {
     })
     return frag
 }
-
 
 // 在数组原型上增加一点改动
 const arrayProto = Array.prototype
@@ -662,14 +618,13 @@ function defineReactive(obj, key, val) {
     })
 }
 
-
 // dep实例的ID
-let did = 0
+let uid$ = 0
 // Dep.target为watcher实例
 Dep.target = null
 
 function Dep() {
-    this.id = did++
+    this.id = uid$++
     this.subs = []    
 }
 
@@ -698,13 +653,75 @@ Dep.prototype = {
     }
 }
 
+function Directive(descriptor, vm) {
+    this.vm = vm
+    this.name = descriptor.name
+    this.descriptor = descriptor
+    this.expression = descriptor.expression
+    this.el = descriptor.el
+    this.filters = descriptor.filters
+    this.modifiers = descriptor.modifiers
+    this.literal = this.modifiers && this.modifiers.literal
+}
+
+Directive.prototype = {
+    _bind() {
+        const descriptor = this.descriptor
+        const def = descriptor.def
+        if (typeof def === 'function') {
+            this.update = def
+        } else {
+            extend(this, def)
+        }
+
+        // 如果指令回调对象有bind函数则执行
+        if (this.bind) {
+            this.bind()
+        }
+
+        if (this.literal) {
+            this.update && this.update(descriptor.raw)
+        } else if (this.expression) {
+            const dir = this
+            if (this.update) {
+                this._update = function (value, oldVal) {
+                    dir.update(value, oldVal)
+                }
+            }
+            const watcher = this._watcher = new Watcher(this.vm, this.expression, this._update, {
+                filters: this.filters
+            })
+
+            // 第一次更新渲染
+            if (this.update) {
+                this.update(watcher.value)
+            }
+        }
+    },
+
+    set(value) {
+        this._watcher.set(value)
+    },
+
+    _teardown(i) {
+        if (this.unbind) {
+            this.unbind()
+        }
+
+        if (this._watcher) {
+            this._watcher.teardown()
+        }
+
+        this.vm = this.el = this._watcher = null
+    }
+}
+
 // watcher实例的ID 每个watcher实现的ID都是唯一的
 let uid = 0
 
 // expOrFn为表达式或一个变量名
 function Watcher(vm, expOrFn, callback, options) {
     vm._watchers.push(this)
-
     if (options) {
         extend(this, options)
     }
@@ -739,7 +756,11 @@ function Watcher(vm, expOrFn, callback, options) {
         }
     }
     // 在创建watcher实例时先取一次值
-    this.value = this.get()
+    if (this.lazy) {
+        this.value = undefined
+    } else {
+        this.value = this.get()
+    }
 }
 
 Watcher.prototype = {
@@ -862,67 +883,357 @@ function nextTick(cb, ctx) {
     })
 }
 
-function Directive(descriptor, vm) {
-    this.vm = vm
-    this.name = descriptor.name
-    this.descriptor = descriptor
-    this.expression = descriptor.expression
-    this.el = descriptor.el
-    this.filters = descriptor.filters
-    this.modifiers = descriptor.modifiers
-    this.literal = this.modifiers && this.modifiers.literal
+
+// 指令描述符容器
+const des = []
+// 用来判断当前是否在解析指令
+let pending = false
+
+function compile(vm, el) {
+    // 如果当前节点不是v-for指令 则继续解析子节点
+    if (!compileNode(el, vm)) {
+        if (el.hasChildNodes()) {
+            compileNodeList(el.childNodes, vm)
+        }
+    }
+    
+    // 当前在解析指令 如果有新的指令 则加到des数组后面 数组会按顺序执行描述符 包括新的描述符
+    // 假如有5个描述符 当前执行到第2个 如果有新的 则push进数组 
+    if (!pending) {
+        let dir, descriptor
+        pending = true
+        sortDescriptors(des)
+        while (des.length) {       
+            descriptor = des.shift()
+            dir = new Directive(descriptor, descriptor.vm)  
+            dir._bind()          
+            descriptor.vm._directives.push(dir)  
+        }
+        pending = false
+        vm._callHook('compiled')
+        // JS主线程执行完再进行废弃指令回收
+        setTimeout(() => {
+            teardown(vm)
+            vm._callHook('destroyed')
+        }, 0)
+    }
 }
 
-Directive.prototype = {
-    _bind() {
-        const descriptor = this.descriptor
-        const def = descriptor.def
-        if (typeof def === 'function') {
-            this.update = def
-        } else {
-            extend(this, def)
-        }
+function compileNode(node, vm) {
+    const type = node.nodeType
+    if (type == 1) {
+        return compileElement(node, vm)
+    } else if (type == 3) {
+        return compileTextNode(node, vm)
+    }
+}
 
-        // 如果指令回调对象有bind函数则执行
-        if (this.bind) {
-            this.bind()
-        }
 
-        if (this.literal) {
-            this.update && this.update(descriptor.raw)
-        } else if (this.expression) {
-            const dir = this
-            if (this.update) {
-                this._update = function (value, oldVal) {
-                    dir.update(value, oldVal)
+function compileNodeList(nodes, vm) {
+    nodes.forEach(node => {
+        if (!compileNode(node, vm)) {           
+            if (node.hasChildNodes()) {              
+                compileNodeList(node.childNodes, vm)
+            }
+        }
+    })
+}
+
+const onRe = /^(v-on:|@)/
+const dirAttrRE = /^v-([^:]+)(?:$|:(.*)$)/
+const bindRe = /^(v-bind:|:)/
+const tagRE = /\{\{\{((?:.|\n)+?)\}\}\}|\{\{((?:.|\n)+?)\}\}/g
+const commonTagRE = /^(div|p|span|img|a|b|i|br|ul|ol|li|h1|h2|h3|h4|h5|h6|code|pre|table|th|td|tr|form|label|input|select|option|nav|article|section|header|footer|button|textarea)$/i
+const reservedTagRE = /^(slot|partial|component)$/i
+
+function compileElement(node, vm) {   
+    const directives = vm.$options.directives
+    const tag = node.tagName.toLowerCase() 
+    if (!commonTagRE.test(tag) && !reservedTagRE.test(tag)) {    
+        if (vm.$options.components[tag]) {
+            des.push({
+                vm,
+                el: node,
+                name: 'component',
+                expression: tag,
+                def: directives.component,
+                modifiers: {
+                    literal: true
+                }
+            })
+        } 
+    } else if (tag === 'slot') {
+        des.push({
+            vm,
+            el: node,
+            arg: undefined,
+            name: 'slot',
+            attr: undefined,
+            expression: '',
+            def: directives.slot
+        })
+    } else if (node.hasAttributes()) {       
+        let matched
+        let isFor = false
+        const attrs = toArray(node.attributes)
+        attrs.forEach((attr) => {       
+            const name = attr.name.trim()
+            const value = attr.value.trim()
+            if (onRe.test(name)) {
+                node.removeAttribute(name)
+                des.push({
+                    vm,
+                    el: node,
+                    arg: name.replace(onRe, ''),
+                    name: 'on',
+                    attr: name,
+                    expression: value,
+                    def: directives.on
+                })
+            } else if (bindRe.test(name)) {
+                node.removeAttribute(name)
+                // 针对过滤器
+                const values = value.split('|')
+                const temp = {
+                    vm,
+                    el: node,
+                    arg: name.replace(bindRe, ''),
+                    name: 'bind',
+                    attr: name,
+                    def: directives.bind
+                }
+
+                if (value.length > 1) {
+                    const expression = values.shift()
+                    const filters = []
+                    values.forEach(value => {
+                        filters.push({
+                            name: value.trim()
+                        })
+                    })
+
+                    temp.expression = expression
+                    temp.filters = filters
+                } else {
+                    temp.expression = value
+                }
+
+                des.push(temp)
+            } else if (matched = name.match(dirAttrRE)) {             
+                if (name == 'v-text') {
+                    node.removeAttribute(name)
+                    const values = value.split('|')
+                    const temp = {
+                        vm,
+                        el: node,
+                        arg: name.replace(bindRe, ''),
+                        name: 'text',
+                        attr: name,
+                        def: directives.text
+                    }
+
+                    if (value.length > 1) {
+                        const expression = values.shift()
+                        const filters = []
+                        values.forEach(value => {
+                            filters.push({
+                                name: value.trim()
+                            })
+                        })
+
+                        temp.expression = expression
+                        temp.filters = filters
+                    } else {
+                        temp.expression = value
+                    }
+
+                    des.push(temp)
+                } else if (name !== 'v-else') {
+                    node.removeAttribute(name)
+                    
+                    des.push({
+                        vm,
+                        el: node,
+                        arg: undefined,
+                        name: name.replace(/^v-/, ''),
+                        attr: name,
+                        expression: value,
+                        def: directives[matched[1]]
+                    })
+                }
+
+                if (name == 'v-for') {
+                    isFor = true
                 }
             }
-            const watcher = this._watcher = new Watcher(this.vm, this.expression, this._update, {
-                filters: this.filters
-            })
-
-            // 第一次更新渲染
-            if (this.update) {
-                this.update(watcher.value)
-            }
-        }
-    },
-
-    set(value) {
-        this._watcher.set(value)
-    },
-
-    _teardown(i) {
-        if (this.unbind) {
-            this.unbind()
-        }
-
-        if (this._watcher) {
-            this._watcher.teardown()
-        }
-
-        this.vm = this.el = this._watcher = null
+        })
+        return isFor
     }
+}
+
+function compileTextNode(node, vm) {
+    const tokens = parseText(node.nodeValue, vm)
+    if (!tokens) {
+        return
+    }
+
+    const frag = document.createDocumentFragment()
+    let el
+    tokens.forEach(token => {
+        el = token.tag ? processTextToken(token, vm) : document.createTextNode(token.value)
+        frag.appendChild(el)
+        if (token.tag) {
+            des.push(token.descriptor)
+        }
+    })
+
+    // 异步替换节点是为了防止在compileNodeList中循环处理节点时 突然删掉其中一个节点而造成处理错误
+    Promise.resolve().then(() => {
+        replace(node, frag)
+    }) 
+}
+// 将文档节点解释为TOKEN
+function parseText(text, vm) {
+    let index = 0
+    let lastIndex = 0
+    let match
+    const tokens = []
+
+    while (match = tagRE.exec(text)) {
+        index = match.index
+
+        if (index > lastIndex) {
+            tokens.push({
+                value: text.slice(lastIndex, index),
+            })
+        }
+
+        tokens.push({
+            value: match[2],
+            tag: true
+        })
+        lastIndex = index + match[0].length
+    }
+
+    if (lastIndex < text.length) {
+        tokens.push({
+            value: text.slice(lastIndex)
+        })
+    }
+    return tokens
+}
+
+function processTextToken(token, vm) {
+    const directives = vm.$options.directives
+    const el = document.createTextNode(' ')
+    if (token.descriptor) {
+        return
+    }
+    // 针对过滤器
+    const values = token.value.split('|')
+    token.descriptor = {
+        vm,
+        el,
+        name: 'text',
+        def: directives.text,
+    }
+
+    if (values.length > 1) {
+        const value = values.shift()
+        const filters = []
+        
+        values.forEach(value => {
+            filters.push({
+                name: value.trim()
+            })
+        })
+
+        token.descriptor.expression = value.trim()
+        token.descriptor.filters = filters
+    } else {
+        token.descriptor.expression = token.value.trim()
+    }
+
+    return el
+}
+
+// 整理指令优先级 优先高的先执行 例如v-for
+function sortDescriptors(des) {
+    des.forEach(d => {
+        if (!d.def.priority) {
+            d.def.priority = 1000
+        }
+    })
+    des.sort((a, b) => {
+        return b.def.priority - a.def.priority
+    })
+}
+
+// 删除已经用不上的指令 如果不是v-if、v-for 并且不在文档中的DOM元素删除并和相应绑定的指令、观察者函数删除
+function teardown(vm) {
+    const body = document.body
+    const contains = body.contains
+    const dirs = vm._directives
+    let attr
+    const temp = []
+    let dir
+    // document.body.contains判断DOM是否在文档中
+    while (dirs.length) {
+        dir = dirs.shift()
+        attr = dir.descriptor.attr
+        // 如果DOM不在文档中 并且指令不是v-for v-if则删除指令
+        if (!contains.call(body, dir.el) && attr !== 'v-for' && attr !== 'v-if') {
+            dir._teardown()
+        } else {
+            temp.push(dir)
+        }
+    }
+    
+    vm._directives = [...temp]
+    temp.length = 0
+}
+
+
+function compileProps(vm, el, propsOptions) {
+    const directives = vm.$options.directives
+    const props = []
+    let prop, value, name
+    const keys = Object.keys(propsOptions)
+    keys.forEach(key => {
+        name = propsOptions[key]
+        prop = {
+            name,
+            path: name
+        }
+        if ((value = getBindAttr(el, name)) !== null) {
+            // 动态绑定
+            prop.dynamic = true
+            prop.raw = prop.parentPath = value
+        } else if ((value = getAttr(el, name)) !== null) {
+            // 静态绑定
+            prop.raw = value
+        }
+        props.push(prop)
+    })
+
+    vm._props = {}
+    props.forEach(prop => {
+        let {path, raw, options} = prop
+        vm._props[path] = prop
+        // 动态绑定则建一个指令 否则直接渲染
+        if (prop.dynamic) {
+            if (vm._context) {
+                des.push({
+                    vm,
+                    name: 'prop',
+                    def: directives.prop,
+                    prop,
+                })
+            }
+        } else {
+            defineReactive(vm, prop.path, prop.raw)
+        }
+    })
 }
 
 const ON = 700
@@ -1323,354 +1634,6 @@ function getValue(el, multi, init) {
     return res
 }
 
-// 指令描述符容器
-const des = []
-// 用来判断当前是否在解析指令
-let pending = false
-
-function compile(vm, el) {
-    // 如果当前节点不是v-for指令 则继续解析子节点
-    if (!compileNode(el, vm)) {
-        if (el.hasChildNodes()) {
-            compileNodeList(el.childNodes, vm)
-        }
-    }
-    
-    // 当前在解析指令 如果有新的指令 则加到des数组后面 数组会按顺序执行描述符 包括新的描述符
-    // 假如有5个描述符 当前执行到第2个 如果有新的 则push进数组 
-    if (!pending) {
-        let dir, descriptor
-        pending = true
-        sortDescriptors(des)
-        while (des.length) {       
-            descriptor = des.shift()
-            dir = new Directive(descriptor, descriptor.vm)  
-            dir._bind()          
-            descriptor.vm._directives.push(dir)  
-        }
-        pending = false
-        vm._callHook('compiled')
-        // JS主线程执行完再进行废弃指令回收
-        setTimeout(() => {
-            teardown(vm)
-            vm._callHook('destroyed')
-        }, 0)
-    }
-}
-
-function compileNode(node, vm) {
-    const type = node.nodeType
-    if (type == 1) {
-        return compileElement(node, vm)
-    } else if (type == 3) {
-        return compileTextNode(node, vm)
-    }
-}
-
-
-function compileNodeList(nodes, vm) {
-    nodes.forEach(node => {
-        if (!compileNode(node, vm)) {           
-            if (node.hasChildNodes()) {              
-                compileNodeList(node.childNodes, vm)
-            }
-        }
-    })
-}
-
-const onRe = /^(v-on:|@)/
-const dirAttrRE = /^v-([^:]+)(?:$|:(.*)$)/
-const bindRe = /^(v-bind:|:)/
-const tagRE = /\{\{\{((?:.|\n)+?)\}\}\}|\{\{((?:.|\n)+?)\}\}/g
-const commonTagRE = /^(div|p|span|img|a|b|i|br|ul|ol|li|h1|h2|h3|h4|h5|h6|code|pre|table|th|td|tr|form|label|input|select|option|nav|article|section|header|footer|button|textarea)$/i
-const reservedTagRE = /^(slot|partial|component)$/i
-
-function compileElement(node, vm) {   
-    const directives = vm.$options.directives
-    const tag = node.tagName.toLowerCase() 
-    if (!commonTagRE.test(tag) && !reservedTagRE.test(tag)) {    
-        if (vm.$options.components[tag]) {
-            des.push({
-                vm,
-                el: node,
-                name: 'component',
-                expression: tag,
-                def: directives.component,
-                modifiers: {
-                    literal: true
-                }
-            })
-        } 
-    } else if (tag === 'slot') {
-        des.push({
-            vm,
-            el: node,
-            arg: undefined,
-            name: 'slot',
-            attr: undefined,
-            expression: '',
-            def: directives.slot
-        })
-    } else if (node.hasAttributes()) {       
-        let matched
-        let isFor = false
-        const attrs = toArray(node.attributes)
-        attrs.forEach((attr) => {       
-            const name = attr.name.trim()
-            const value = attr.value.trim()
-            if (onRe.test(name)) {
-                node.removeAttribute(name)
-                des.push({
-                    vm,
-                    el: node,
-                    arg: name.replace(onRe, ''),
-                    name: 'on',
-                    attr: name,
-                    expression: value,
-                    def: directives.on
-                })
-            } else if (bindRe.test(name)) {
-                node.removeAttribute(name)
-                // 针对过滤器
-                const values = value.split('|')
-                const temp = {
-                    vm,
-                    el: node,
-                    arg: name.replace(bindRe, ''),
-                    name: 'bind',
-                    attr: name,
-                    def: directives.bind
-                }
-
-                if (value.length > 1) {
-                    const expression = values.shift()
-                    const filters = []
-                    values.forEach(value => {
-                        filters.push({
-                            name: value.trim()
-                        })
-                    })
-
-                    temp.expression = expression
-                    temp.filters = filters
-                } else {
-                    temp.expression = value
-                }
-
-                des.push(temp)
-            } else if (matched = name.match(dirAttrRE)) {             
-                if (name == 'v-text') {
-                    node.removeAttribute(name)
-                    const values = value.split('|')
-                    const temp = {
-                        vm,
-                        el: node,
-                        arg: name.replace(bindRe, ''),
-                        name: 'text',
-                        attr: name,
-                        def: directives.text
-                    }
-
-                    if (value.length > 1) {
-                        const expression = values.shift()
-                        const filters = []
-                        values.forEach(value => {
-                            filters.push({
-                                name: value.trim()
-                            })
-                        })
-
-                        temp.expression = expression
-                        temp.filters = filters
-                    } else {
-                        temp.expression = value
-                    }
-
-                    des.push(temp)
-                } else if (name !== 'v-else') {
-                    node.removeAttribute(name)
-                    
-                    des.push({
-                        vm,
-                        el: node,
-                        arg: undefined,
-                        name: name.replace(/^v-/, ''),
-                        attr: name,
-                        expression: value,
-                        def: directives[matched[1]]
-                    })
-                }
-
-                if (name == 'v-for') {
-                    isFor = true
-                }
-            }
-        })
-        return isFor
-    }
-}
-
-function compileTextNode(node, vm) {
-    const tokens = parseText(node.nodeValue, vm)
-    if (!tokens) {
-        return
-    }
-
-    const frag = document.createDocumentFragment()
-    let el
-    tokens.forEach(token => {
-        el = token.tag ? processTextToken(token, vm) : document.createTextNode(token.value)
-        frag.appendChild(el)
-        if (token.tag) {
-            des.push(token.descriptor)
-        }
-    })
-    replace(node, frag)
-}
-// 将文档节点解释为TOKEN
-function parseText(text, vm) {
-    let index = 0
-    let lastIndex = 0
-    let match
-    const tokens = []
-
-    while (match = tagRE.exec(text)) {
-        index = match.index
-
-        if (index > lastIndex) {
-            tokens.push({
-                value: text.slice(lastIndex, index),
-            })
-        }
-
-        tokens.push({
-            value: match[2],
-            tag: true
-        })
-        lastIndex = index + match[0].length
-    }
-
-    if (lastIndex < text.length) {
-        tokens.push({
-            value: text.slice(lastIndex)
-        })
-    }
-    return tokens
-}
-
-function processTextToken(token, vm) {
-    const directives = vm.$options.directives
-    const el = document.createTextNode(' ')
-    if (token.descriptor) {
-        return
-    }
-    // 针对过滤器
-    const values = token.value.split('|')
-    token.descriptor = {
-        vm,
-        el,
-        name: 'text',
-        def: directives.text,
-    }
-
-    if (values.length > 1) {
-        const value = values.shift()
-        const filters = []
-        
-        values.forEach(value => {
-            filters.push({
-                name: value.trim()
-            })
-        })
-
-        token.descriptor.expression = value.trim()
-        token.descriptor.filters = filters
-    } else {
-        token.descriptor.expression = token.value.trim()
-    }
-
-    return el
-}
-
-// 整理指令优先级 优先高的先执行 例如v-for
-function sortDescriptors(des) {
-    des.forEach(d => {
-        if (!d.def.priority) {
-            d.def.priority = 1000
-        }
-    })
-    des.sort((a, b) => {
-        return b.def.priority - a.def.priority
-    })
-}
-
-// 删除已经用不上的指令 如果不是v-if、v-for 并且不在文档中的DOM元素删除并和相应绑定的指令、观察者函数删除
-function teardown(vm) {
-    const body = document.body
-    const contains = body.contains
-    const dirs = vm._directives
-    let attr
-    const temp = []
-    let dir
-    // document.body.contains判断DOM是否在文档中
-    while (dirs.length) {
-        dir = dirs.shift()
-        attr = dir.descriptor.attr
-        // 如果DOM不在文档中 并且指令不是v-for v-if则删除指令
-        if (!contains.call(body, dir.el) && attr !== 'v-for' && attr !== 'v-if') {
-            dir._teardown()
-        } else {
-            temp.push(dir)
-        }
-    }
-    
-    vm._directives = [...temp]
-    temp.length = 0
-}
-
-
-function compileProps(vm, el, propsOptions) {
-    const directives = vm.$options.directives
-    const props = []
-    let prop, value, name
-    const keys = Object.keys(propsOptions)
-    keys.forEach(key => {
-        name = propsOptions[key]
-        prop = {
-            name,
-            path: name
-        }
-        if ((value = getBindAttr(el, name)) !== null) {
-            // 动态绑定
-            prop.dynamic = true
-            prop.raw = prop.parentPath = value
-        } else if ((value = getAttr(el, name)) !== null) {
-            // 静态绑定
-            prop.raw = value
-        }
-        props.push(prop)
-    })
-
-    vm._props = {}
-    props.forEach(prop => {
-        let {path, raw, options} = prop
-        vm._props[path] = prop
-        // 动态绑定则建一个指令 否则直接渲染
-        if (prop.dynamic) {
-            if (vm._context) {
-                des.push({
-                    vm,
-                    name: 'prop',
-                    def: directives.prop,
-                    prop,
-                })
-            }
-        } else {
-            defineReactive(vm, prop.path, prop.raw)
-        }
-    })
-}
-
 function toArray(arry, index) {
     index = index || 0
     return [...arry].slice(index)
@@ -1787,20 +1750,224 @@ function toUpper(_, c) {
     return c ? c.toUpperCase() : ''
 }
 
-function deepCopy(obj) {
-    if (typeof obj != 'object') {
-        return obj
+function set(obj, key, val) {
+    if (hasOwn(obj, key)) {
+        obj[key] = val
+        return
     }
-    let newobj = {}
-
-    if (isArray(obj)) {
-        newobj = []
-    } 
-
-    for (let key in obj) {
-        newobj[key] = deepCopy(obj[key])
+    if (obj._isVue) {
+        set(obj._data, key, val)
+        return
     }
-    return newobj
+    const ob = obj.__ob__
+    if (!ob) {
+        obj[key] = val
+        return
+    }
+    ob.convert(key, val)
+    ob.dep.notify()
+    return val
+}
+
+const hyphenateRE = /([^-])([A-Z])/g
+
+function hyphenate(str) {
+    return str.replace(hyphenateRE, '$1-$2').replace(hyphenateRE, '$1-$2').toLowerCase()
+}
+
+const strats = Object.create(null)
+
+function guardArrayAssets(assets) {
+    if (isArray(assets)) {
+        const res = {}
+        let i = assets.length
+        let asset
+        while (i--) {
+            asset = assets[i]
+            id = typeof asset === 'function' ? asset.options && asset.options.name || asset.id : asset.name || asset.id
+            if (id) {
+                res[id] = asset
+            }
+        }
+        return res
+    }
+  
+  return assets
+}
+
+// 合并参数
+function mergeOptions(parent, child, vm) {
+    guardComponents(child)
+    const options = {}
+    let key
+
+    if (child['extends']) {
+        parent = typeof child['extends'] === 'function' ? mergeOptions(parent, child['extends'].options, vm) : mergeOptions(parent, child['extends'], vm)
+    }
+
+    if (child.mixins) {
+        for (var i = 0, l = child.mixins.length; i < l; i++) {
+            const mixin = child.mixins[i]
+            const mixinOptions = mixin.prototype instanceof MiniVue ? mixin.options : mixin
+            parent = mergeOptions(parent, mixinOptions, vm)
+          
+        }
+    }
+
+    for (key in parent) {
+        mergeField(key)
+    }
+
+    for (key in child) {
+        if (!hasOwn(parent, key)) {
+             mergeField(key)
+        }
+    }
+
+    function mergeField(key) {
+        const strat = strats[key] || defaultStrat
+        options[key] = strat(parent[key], child[key], vm, key)
+    }
+    return options
+}
+
+function guardComponents(options) {
+    if (options.components) {
+        const components = options.components
+        const keys = Object.keys(components)
+        keys.forEach(key => {
+            components[key] = MiniVue.component(key, components[key], true)
+        })
+    }
+}
+
+function mergeData(to, from) {
+    let key, toVal, fromVal
+    for (key in from) {
+        toVal = to[key]
+        fromVal = from[key]
+        if (!hasOwn(to, key)) {
+            set(to, key, fromVal)
+        } else if (isObject(toVal) && isObject(fromVal)) {
+            mergeData(toVal, fromVal)
+        }
+    }
+    return to
+}
+
+strats.data = function (parentVal, childVal, vm) {
+    if (!vm) {
+        if (!childVal) {
+          return parentVal
+        }
+        if (typeof childVal !== 'function') {
+            return parentVal
+        }
+        if (!parentVal) {  
+            return childVal
+        }
+
+        return function mergedDataFn() {
+            return mergeData(childVal.call(this), parentVal.call(this))
+        }
+    } else if (parentVal || childVal) {
+        return function mergedInstanceDataFn() {
+            const instanceData = typeof childVal === 'function' ? childVal.call(vm) : childVal
+            const defaultData = typeof parentVal === 'function' ? parentVal.call(vm) : undefined
+            if (instanceData) {
+                return mergeData(instanceData, defaultData)
+            } else {
+                return defaultData
+            }
+        }
+    }
+}
+
+
+
+strats.el = function (parentVal, childVal, vm) {
+    if (!vm && childVal && typeof childVal !== 'function') {
+        return
+    }
+    const ret = childVal || parentVal
+    return vm && typeof ret === 'function' ? ret.call(vm) : ret
+}
+
+
+
+strats.init = 
+strats.created = 
+strats.ready = 
+strats.attached = 
+strats.detached = 
+strats.beforeCompile = 
+strats.compiled = 
+strats.beforeDestroy = 
+strats.destroyed = 
+strats.activate = function (parentVal, childVal) {
+    return childVal ? parentVal ? parentVal.concat(childVal) : isArray(childVal) ? childVal : [childVal] : parentVal
+}
+
+
+function mergeAssets(parentVal, childVal) {
+    const res = Object.create(parentVal || null)
+    return childVal ? extend(res, guardArrayAssets(childVal)) : res
+}
+
+['component', 'directive', 'elementDirective', 'filter', 'transition', 'partial'].forEach(function (type) {
+    strats[type + 's'] = mergeAssets
+})
+
+strats.watch = strats.events = function (parentVal, childVal) { 
+    if (!childVal) return parentVal
+    if (!parentVal) return childVal
+    const ret = {}
+    extend(ret, parentVal)
+    for (var key in childVal) {
+        let parent = ret[key]
+        let child = childVal[key]
+        if (parent && !isArray(parent)) {
+            parent = [parent]
+        }
+        ret[key] = parent ? parent.concat(child) : [child]
+    }
+
+    return ret
+}
+
+
+strats.props = strats.methods = strats.computed = function (parentVal, childVal) {
+    if (!childVal) return parentVal
+    if (!parentVal) return childVal
+    const ret = Object.create(null)
+    extend(ret, parentVal)
+    extend(ret, childVal)
+    return ret
+}
+
+const defaultStrat = function defaultStrat(parentVal, childVal) {
+    return childVal === undefined ? parentVal : childVal
+}
+
+const specialCharRE = /[^\w\-:\.]/
+
+// 合并属性
+function mergeAttrs(from, to) {
+    const attrs = from.attributes
+    let i = attrs.length
+    let name, value
+    while (i--) {
+        name = attrs[i].name
+        value = attrs[i].value.trim()
+        if (!to.hasAttribute(name) && !specialCharRE.test(name)) {
+            to.setAttribute(name, value)
+        } else if (name === 'class') {
+            value.split(/\s+/).forEach(cls => {
+                addClass(to, cls)
+            })
+        }
+    }
+    
 }
 
 MiniVue.options = {
