@@ -1,3 +1,7 @@
+import {mergeOptions, mergeAttrs} from './merge.js'
+
+export {mergeOptions, mergeAttrs}
+
 export function toArray(arry, index) {
     index = index || 0
     return [...arry].slice(index)
@@ -114,18 +118,21 @@ export function toUpper(_, c) {
     return c ? c.toUpperCase() : ''
 }
 
-export function deepCopy(obj) {
-    if (typeof obj != 'object') {
-        return obj
+export function set(obj, key, val) {
+    if (hasOwn(obj, key)) {
+        obj[key] = val
+        return
     }
-    let newobj = {}
-
-    if (isArray(obj)) {
-        newobj = []
-    } 
-
-    for (let key in obj) {
-        newobj[key] = deepCopy(obj[key])
+    if (obj._isVue) {
+        set(obj._data, key, val)
+        return
     }
-    return newobj
+    const ob = obj.__ob__
+    if (!ob) {
+        obj[key] = val
+        return
+    }
+    ob.convert(key, val)
+    ob.dep.notify()
+    return val
 }

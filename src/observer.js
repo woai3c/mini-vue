@@ -1,5 +1,5 @@
 import Dep from './dep.js'
-import {def, hasOwn, isArray} from './utils.js'
+import {def, hasOwn, isArray} from './utils'
 
 // 在数组原型上增加一点改动
 const arrayProto = Array.prototype

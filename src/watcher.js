@@ -1,5 +1,5 @@
 import Dep from './dep.js'
-import {isObject, extend, makeGetterFn, isArray} from './utils.js'
+import {isObject, extend, makeGetterFn, isArray} from './utils'
 
 // watcher实例的ID 每个watcher实现的ID都是唯一的
 let uid = 0
@@ -7,7 +7,6 @@ let uid = 0
 // expOrFn为表达式或一个变量名
 export function Watcher(vm, expOrFn, callback, options) {
     vm._watchers.push(this)
-
     if (options) {
         extend(this, options)
     }
@@ -42,7 +41,11 @@ export function Watcher(vm, expOrFn, callback, options) {
         }
     }
     // 在创建watcher实例时先取一次值
-    this.value = this.get()
+    if (this.lazy) {
+        this.value = undefined
+    } else {
+        this.value = this.get()
+    }
 }
 
 Watcher.prototype = {

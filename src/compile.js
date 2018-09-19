@@ -1,5 +1,5 @@
 import Directive from './directive.js'
-import {toArray, replace, getAttr, getBindAttr} from './utils.js'
+import {toArray, replace, getAttr, getBindAttr} from './utils'
 import {defineReactive} from './observer.js'
 
 // 指令描述符容器
@@ -204,7 +204,11 @@ function compileTextNode(node, vm) {
             des.push(token.descriptor)
         }
     })
-    replace(node, frag)
+
+    // 异步替换节点是为了防止在compileNodeList中循环处理节点时 突然删掉其中一个节点而造成处理错误
+    Promise.resolve().then(() => {
+        replace(node, frag)
+    }) 
 }
 // 将文档节点解释为TOKEN
 function parseText(text, vm) {

@@ -1,4 +1,4 @@
-import {on, off, bind, isArray, getAttr, remove, replace, insert} from './utils.js'
+import {on, off, bind, isArray, getAttr, remove, replace, insert} from './utils'
 import {compile} from './compile.js'
 import {defineReactive} from './observer.js'
 import {Watcher} from './watcher.js'

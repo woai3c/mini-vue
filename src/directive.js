@@ -1,4 +1,4 @@
-import {extend} from './utils.js'
+import {extend} from './utils'
 import {Watcher} from './watcher.js'
 
 export default function Directive(descriptor, vm) {

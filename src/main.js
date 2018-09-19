@@ -1,6 +1,8 @@
 import observe from './observer.js'
 import {Watcher, nextTick} from './watcher.js'
-import {toArray, isArray, addClass, extend, hasOwn, replace, query, bind, firstWordtoUpper, toUpper, trimNode, isTrimmable, deepCopy} from './utils.js'
+import {toArray, isArray, addClass, extend, hasOwn, replace, query, bind, 
+        firstWordtoUpper, toUpper, trimNode, isTrimmable, 
+        mergeOptions, mergeAttrs} from './utils'
 import {compile, compileProps} from './compile.js'
 import directives from './directives.js'
 import Dep from './dep.js'
@@ -48,6 +50,7 @@ MiniVue.use = function (plugin) {
 MiniVue.cid = 0
 // 生成子组件构造函数
 MiniVue.extend = function(extendOptions) {
+    
     extendOptions = extendOptions || {}
     const Super = this
     let isFirstExtend = Super.cid === 0
@@ -56,6 +59,7 @@ MiniVue.extend = function(extendOptions) {
     }
 
     const name = extendOptions.name || Super.options.name
+    
     const Sub = new Function('return function ' + classify(name) + ' (options) { this._init(options) }')()
     Sub.prototype = Object.create(Super.prototype)
     Sub.prototype.constructor = Sub
@@ -380,51 +384,6 @@ function makeComputedGetter(getter, vm) {
     }
 }
 
-
-// 合并参数
-function mergeOptions(parent, child, vm) {
-      
-    // 深层拷贝一个新的对象 
-    const options = deepCopy(parent)
-    const keys = Object.keys(child)
-
-    keys.forEach(key => {
-        if (hasOwn(options, key)) {
-            if (isArray(options[key])) {
-                options[key] = options[key].concat(child[key])
-            } else {
-                if (typeof child[key] == 'object') {
-                    extend(options[key], child[key])
-                }          
-            }
-        } else {
-            options[key] = child[key]
-        }
-    })
-    
-    return options
-}
-
-const specialCharRE = /[^\w\-:\.]/
-
-// 合并属性
-function mergeAttrs(from, to) {
-    const attrs = from.attributes
-    let i = attrs.length
-    let name, value
-    while (i--) {
-        name = attrs[i].name
-        value = attrs[i].value.trim()
-        if (!to.hasAttribute(name) && !specialCharRE.test(name)) {
-            to.setAttribute(name, value)
-        } else if (name === 'class') {
-            value.split(/\s+/).forEach(cls => {
-                addClass(to, cls)
-            })
-        }
-    }
-    
-}
 
 // 将el内容替换为模板内容
 function transclude(el, options) {
