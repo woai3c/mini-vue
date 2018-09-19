@@ -7,6 +7,8 @@
 ## MVVM
 [先来科普一下MVVM的概念及原理](https://github.com/woai3c/mini-vue/blob/master/doc/mvvm.md)
 
+## 配套插件
+[mini-vuex](https://github.com/woai3c/mini-vuex)
 ## 实现一个迷你版的vue
 
 ### 实现的功能
