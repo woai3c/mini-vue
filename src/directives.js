@@ -339,6 +339,9 @@ export default {
 
         build() {
             this.Component = this.vm.$options.components[this.expression]
+            if (!this.Component.options.template) {
+                this.Component.options.template = '<div></div>'
+            }
             const options = {
                 name: this.expression,
                 el: this.el.cloneNode(true),

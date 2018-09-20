@@ -77,7 +77,7 @@
         <p>{{obj.a.msg | capitalize}}</p>
         <p :name="obj.a.msg | capitalize">haha</p>
     </div>
-<script type="text/javascript" src="mini-vue.js"></script></body>
+<script type="text/javascript" src="mini-vue.min.js"></script></body>
 <script>
     const objd = {
         bind() {
@@ -92,7 +92,7 @@
     }
 
     // 注册全局指令
-    // MiniVue.directive('my-directive', objd)
+    MiniVue.directive('my-directive', objd)
 
     MiniVue.mixin({
         methods: {

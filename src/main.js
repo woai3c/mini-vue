@@ -50,7 +50,6 @@ MiniVue.use = function (plugin) {
 MiniVue.cid = 0
 // 生成子组件构造函数
 MiniVue.extend = function(extendOptions) {
-    
     extendOptions = extendOptions || {}
     const Super = this
     let isFirstExtend = Super.cid === 0

@@ -37,7 +37,6 @@ MiniVue.use = function (plugin) {
 MiniVue.cid = 0
 // 生成子组件构造函数
 MiniVue.extend = function(extendOptions) {
-    
     extendOptions = extendOptions || {}
     const Super = this
     let isFirstExtend = Super.cid === 0
@@ -1572,6 +1571,9 @@ const directives = {
 
         build() {
             this.Component = this.vm.$options.components[this.expression]
+            if (!this.Component.options.template) {
+                this.Component.options.template = '<div></div>'
+            }
             const options = {
                 name: this.expression,
                 el: this.el.cloneNode(true),
