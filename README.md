@@ -30,12 +30,13 @@ MiniVue.use
 MiniVue.mixin
 ```
 
-#### mixin filter component也可以局部注册 在new一个实例时提供以下选项即可
+#### mixins filters components directives 也可以局部注册 在new一个实例时提供以下选项即可
 
 ```
 filters
 components
 mixin
+directives
 ```
 
 #### 实例方法
