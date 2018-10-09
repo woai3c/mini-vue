@@ -2,7 +2,7 @@ MVVM最早由微软提出来，它借鉴了桌面应用程序的MVC思想，在�
 把Model和View关联起来的就是ViewModel。<br>
 ViewModel负责把Model的数据同步到View显示出来，还负责把View的修改同步回Model<br>
 View 和 Model 之间的同步工作完全是自动的，无需人为干涉<br>
-因此开发者只需关注业务逻辑，不需要手动操作DOM, 不需要关注数据状态的同步问题，复杂的数据状态维护完全由 MVVM 来统一管理
+因此开发者只需关注业务逻辑，不需要手动操作DOM, 不需要关注数据状态的同步问题，复杂的数据状态维护完全由 MVVM 来统一管理<br>
 ViewModel如何编写？需要用JavaScript编写一个通用的ViewModel，这样，就可以复用整个MVVM模型了
 
 一个MVVM框架和jQuery操作DOM相比有什么区别？
