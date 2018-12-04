@@ -58,3 +58,18 @@ Vue主要关注的是两个模块：指令以及组件
 每一个实例都有自己的数据、方法等属性<br>
 区别就在于父子组件之间能传值<br>
 [组件基础](https://cn.vuejs.org/v2/guide/components-registration.html)
+
+## 其它
+### 选项/数据
+* [data](https://cn.vuejs.org/v2/api/#data)
+* [props](https://cn.vuejs.org/v2/api/#props)
+* [propsData](https://cn.vuejs.org/v2/api/#propsData)
+* [computed](https://cn.vuejs.org/v2/api/#computed)
+* [methods](https://cn.vuejs.org/v2/api/#methods)
+* [watch](https://cn.vuejs.org/v2/api/#watch)
+
+### 选项/DOM
+* [el](https://cn.vuejs.org/v2/api/#el)
+* [template](https://cn.vuejs.org/v2/api/#template)
+* [render](https://cn.vuejs.org/v2/api/#render)
+* [renderError](https://cn.vuejs.org/v2/api/#renderError)
