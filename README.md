@@ -105,3 +105,5 @@ destroyed
 [MiniVue v0.1](https://github.com/woai3c/mini-vue/tree/v0.1)
 
 [学习Vue源码推荐看这篇文章](http://hcysun.me/vue-design/art/)
+
+### 如果对你有帮助，请给个Star
