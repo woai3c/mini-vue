@@ -1,3 +1,5 @@
+# MiniVue
+
 ## Vue1和Vue2的区别
 其实Vue1和Vue2最大的区别就是Vue2多了一个虚拟DOM，其他的区别都是很小的。所以理解了Vue1的源码，就相当于理解了Vue2，中间差了一个虚拟DOM的Diff算法
 
