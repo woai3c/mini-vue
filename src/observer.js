@@ -50,7 +50,7 @@ export default function observe(value) {
     let ob
     if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
         ob = value.__ob__
-    } else if (!value._isVue) {
+    } else if (!value._isMiniVue) {
         ob = new Observer(value)
     }
 
