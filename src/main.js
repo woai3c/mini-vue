@@ -198,7 +198,6 @@ MiniVue.prototype = {
         keys.forEach(key => {
             this._proxy(this, '_data', key)
         })
-        debugger
         // 监听数据
         observe(this._data)
     },
