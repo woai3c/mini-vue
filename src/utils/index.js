@@ -123,7 +123,7 @@ export function set(obj, key, val) {
         obj[key] = val
         return
     }
-    if (obj._isVue) {
+    if (obj._isMiniVue) {
         set(obj._data, key, val)
         return
     }

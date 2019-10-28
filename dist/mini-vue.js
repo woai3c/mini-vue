@@ -540,7 +540,7 @@ function observe(value) {
     let ob
     if (hasOwn(value, '__ob__') && value.__ob__ instanceof Observer) {
         ob = value.__ob__
-    } else if (!value._isVue) {
+    } else if (!value._isMiniVue) {
         ob = new Observer(value)
     }
 
@@ -1757,7 +1757,7 @@ function set(obj, key, val) {
         obj[key] = val
         return
     }
-    if (obj._isVue) {
+    if (obj._isMiniVue) {
         set(obj._data, key, val)
         return
     }
