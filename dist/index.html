@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>MiniVue-Demo</title>
-</head>
-</html>
+<script type="text/javascript" src="mini-vue.min.js"></script></head>
+
 <body>
-   <div id="app"> 
+    <div id="app">
         <p>姓名：{{name}} {{obj.a.msg}}</p>
         <p>年龄：{{age}}</p>
         <p>地址: {{address}}</p>
+        <p>{{ '姓名: ' + name + ', 年龄: ' + age }}</p>
         <button @click="increase">年龄+1</button>
-        <input v-model="age" :name="name">
+        <input v-model="age" :name="name"> <br>
         <textarea v-model="select"></textarea>
         <select multiple="multiple" v-model="select">
             <option value="v1">0</option>
@@ -19,8 +21,11 @@
             <option value="v3">2</option>
             <option value="v4">3</option>
         </select>
+        <br>
+        <br>
         <button @click="sayHi">sayHi</button>
-
+        <br>
+        <br>
         <label>
             <input type="radio" name="good" value="r1" v-model="pick">
             test1
@@ -35,7 +40,8 @@
         </label>
         <input v-model="pick">
 
-
+        <br>
+        <br>
         <input type="checkbox" id="jack" value="Jack" v-model="checkedNames">
         <label for="jack">c1</label>
         <input type="checkbox" id="john" value="John" v-model="checkedNames">
@@ -49,8 +55,8 @@
         <p v-html="html"></p>
         <p v-show="show">这是一个v-show示例</p>
 
-        <p v-if="if" el=1>{{address[0]}}</p>
-        <p v-else el=2>{{address[1]}}</p> 
+        <p v-if="ifFlag" el=1>{{address[0]}}</p>
+        <p v-else el=2>{{address[1]}}</p>
 
         <ul id="for">
             <li v-for="item in address">
@@ -77,42 +83,41 @@
         <p>{{obj.a.msg | capitalize}}</p>
         <p :name="obj.a.msg | capitalize">haha</p>
     </div>
-<script type="text/javascript" src="mini-vue.min.js"></script></body>
-<script>
-    const objd = {
-        bind() {
-            console.log('bind')
-        },
-        update(value) {
-            console.log('update' + value)
-        },
-        unbind() {
-            console.log('unbind')
-        }
-    }
-
-    // 注册全局指令
-    MiniVue.directive('my-directive', objd)
-
-    MiniVue.mixin({
-        methods: {
-            mix() {
-                console.log('一个测试函数')
+    <script>
+        const objd = {
+            bind() {
+                console.log('bind')
+            },
+            update(value) {
+                console.log('update' + value)
+            },
+            unbind() {
+                console.log('unbind')
             }
         }
-    })
 
-    const obj = {
-        props: ['name'],
-        data() {
-            return {
-                content: '这是一个子组件'
+        // 注册全局指令
+        MiniVue.directive('my-directive', objd)
+
+        MiniVue.mixin({
+            methods: {
+                mix() {
+                    console.log('一个测试函数')
+                }
             }
-        },
-        directives: {
-            'my-directive': objd
-        },
-        template: '\
+        })
+
+        const obj = {
+            props: ['name'],
+            data() {
+                return {
+                    content: '这是一个子组件'
+                }
+            },
+            directives: {
+                'my-directive': objd
+            },
+            template: '\
                     <div class="blog-post">\
                         <p @click="test">{{content}}</p>\
                         <p>{{name.a.msg}}</p>\
@@ -120,27 +125,27 @@
                         <p v-my-directive="content">新指令</p>\
                         <slot></slot>\
                     </div>',
-        methods: {
-            test() {
-                this.$emit('send', 'haha')
+            methods: {
+                test() {
+                    this.$emit('send', 'haha')
+                }
             }
         }
-    }
 
 
-    MiniVue.filter('endding', function(value) {
-        return value + ' endding'
-    })
+        MiniVue.filter('endding', function (value) {
+            return value + ' endding'
+        })
 
-    const MyPlugin = {}
+        const MyPlugin = {}
 
-    MyPlugin.install = function (MiniVue, options) {
-          // 1. 添加全局方法或属性
-          MiniVue.myGlobalMethod = function () {
-             console.log('这是一个插件')
-          }
+        MyPlugin.install = function (MiniVue, options) {
+            // 1. 添加全局方法或属性
+            MiniVue.myGlobalMethod = function () {
+                console.log('这是一个插件')
+            }
 
-          // 2. 添加全局资源
+            // 2. 添加全局资源
             MiniVue.directive('my-plugin', {
                 bind() {
                     console.log('这是一个插件指令')
@@ -154,92 +159,92 @@
             })
         }
 
-    MiniVue.use(MyPlugin)
+        MiniVue.use(MyPlugin)
 
-    const vm = new MiniVue({
-        el: '#app',
-        data: {
-            newAge: 20,
-            age: 18,
-            name: '小马',
-            obj: {
-                a: {
-                    msg: 'abc'
-                }
+        const vm = new MiniVue({
+            el: '#app',
+            data: {
+                newAge: 20,
+                age: 18,
+                name: '小马',
+                obj: {
+                    a: {
+                        msg: 'abc'
+                    }
+                },
+                select: ['v1', 2, 3, 4],
+                pick: '',
+                checkedNames: [],
+                address: ['中国', '天津', '南开'],
+                html: '<span style="color:red">这是一段v-html</span>',
+                show: 'a',
+                newAddress: ['银河', '太阳', '地球'],
+                ifFlag: true
             },
-            select: ['v1', 2, 3, 4],
-            pick: '',
-            checkedNames: [],
-            address: ['中国', '天津', '南开'],
-            html: '<span style="color:red">这是一段v-html</span>',
-            show: 'a',
-            newAddress: ['银河', '太阳', '地球'],
-            if: true
-        },
-        // 五个生命周期函数
-        init() {
-            console.log('init')
-        },
-        created() {
-            console.log('created')
-        },
-        beforeCompile() {
-            console.log('beforeCompile')
-        },
-        compiled() {
-            console.log('compiled')
-        },
-        destroyed() {
-            console.log('destroyed')
-        },
-        directives: {
-            'my-directive': objd
-        },
-        methods: {
-            increase() {
-                this.newAge++
-                this.newAge++
-                this.newAge++
-                this.newAge++
+            // 五个生命周期函数
+            init() {
+                console.log('init')
             },
-            reset() {
-                this.address = ['中国', '天津', '南开']
+            created() {
+                console.log('created')
             },
-            sayHi() {
-                console.log('父组件有一个自己的sayHi方法')
+            beforeCompile() {
+                console.log('beforeCompile')
             },
-            sayTest(msg) {
-                console.log('hi, '  + msg)
-            }
-        },
-        computed: {
-            comTest() {
-                return this.age + ' ' + this.name
-            }
-        },
-        filters: {
-            capitalize(value) {
-                if (!value) {
-                    return ''
-                }
-                value = value.toString()
-                return value.charAt(0).toUpperCase() + value.slice(1)
-            }
-        },
-        components: {
-            'my-component': obj
-        },
-        mixin: {
+            compiled() {
+                console.log('compiled')
+            },
+            destroyed() {
+                console.log('destroyed')
+            },
+            directives: {
+                'my-directive': objd
+            },
             methods: {
-                newMixin() {
-                    console.log('newMixin')
+                increase() {
+                    this.age++
+                },
+                reset() {
+                    this.address = ['中国', '天津', '南开']
+                },
+                sayHi() {
+                    console.log('父组件有一个自己的sayHi方法')
+                },
+                sayTest(msg) {
+                    console.log('hi, ' + msg)
+                }
+            },
+            computed: {
+                comTest() {
+                    return this.age + ' ' + this.name
+                }
+            },
+            filters: {
+                capitalize(value) {
+                    if (!value) {
+                        return ''
+                    }
+                    value = value.toString()
+                    return value.charAt(0).toUpperCase() + value.slice(1)
+                }
+            },
+            components: {
+                'my-component': obj
+            },
+            mixin: {
+                methods: {
+                    newMixin() {
+                        console.log('newMixin')
+                    }
+                }
+            },
+            computed: {
+                comTest() {
+                    return this.age + ' ' + this.name
                 }
             }
-        },
-        computed: {
-            comTest() {
-                return this.age + ' ' + this.name
-            }
-        }
-    })
-</script>
+        })
+    </script>
+</body>
+
+</html>

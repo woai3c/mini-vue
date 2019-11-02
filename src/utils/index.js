@@ -91,7 +91,7 @@ export function query(el) {
 }
 
 export function makeGetterFn(body) {
-    return new Function('vm', 'return vm.' + body)
+    return new Function(`with(this) { return ${body} }`);
 }
 
 export function firstWordtoUpper(str) {
