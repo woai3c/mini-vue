@@ -1002,7 +1002,7 @@ function compileElement(node, vm) {
                     def: directives.bind
                 }
 
-                if (value.length > 1) {
+                if (values.length > 1) {
                     const expression = values.shift()
                     const filters = []
                     values.forEach(value => {
@@ -1031,7 +1031,7 @@ function compileElement(node, vm) {
                         def: directives.text
                     }
 
-                    if (value.length > 1) {
+                    if (values.length > 1) {
                         const expression = values.shift()
                         const filters = []
                         values.forEach(value => {
