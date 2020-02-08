@@ -116,6 +116,6 @@ destroyed
 想了解主线流程的 可以看看我的v0.1版本 300行代码 完整的实现了双向数据绑定的流程 还有3条指令的实现过程 其实其他的指令即使没实现 也没什么关系 主流程明白即可<br>
 [MiniVue v0.1](https://github.com/woai3c/mini-vue/tree/v0.1)
 
-[学习Vue源码推荐看这篇文章](http://hcysun.me/vue-design/art/)
+[学习Vue源码推荐看这篇文章](http://hcysun.me/vue-design/zh/essence-of-comp.html#%E7%BB%84%E4%BB%B6%E7%9A%84%E4%BA%A7%E5%87%BA%E6%98%AF%E4%BB%80%E4%B9%88)
 
 ### 如果对你有帮助，请给个Star
