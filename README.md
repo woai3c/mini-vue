@@ -5,7 +5,7 @@ npm run dev
 ```
 可以查看一些指令的展示效果 不过没有排版 样式比较丑陋 建议对比着指令来看 也可以自己写一些代码看效果 指令用法和 Vue 一样的
 ## Vue1和Vue2的区别
-其实Vue1和Vue2最大的区别就是Vue2多了一个虚拟DOM，其他的区别都是很小的。所以理解了Vue1的源码，就相当于理解了Vue2，中间差了一个虚拟DOM的Diff算法
+其实 Vue1 和 Vue2 最大的区别就是 Vue2 多了一个虚拟DOM，其他的区别都是很小的。所以理解了 Vue1 的源码，就相当于理解了 Vue2，中间差了一个虚拟DOM 以及 Diff 算法
 
 ## 网友的学习笔记
 * [Mr.大哥](https://www.yuque.com/mrdage/qnzf2d)
@@ -113,7 +113,8 @@ destroyed
 ![vue流程图](https://github.com/woai3c/mini-vue/blob/master/imgs/vue.svg)
 
 如果不是想自己实现一个mvvm框架 Vue的源码不用细读 只要明白主线的运行过程就行了 想要熟练使用Vue看官方文档即可<br>
-想了解主线流程的 可以看看我的v0.1版本 300行代码 完整的实现了双向数据绑定的流程 还有3条指令的实现过程 其实其他的指令即使没实现 也没什么关系 主流程明白即可<br>
+想了解主线流程的 可以看看我的v0.1版本 300行代码 完整的实现了双向数据绑定的流程 还有3条指令的实现过程 其实其他的指令即使没实现 也没什么关系 主流程明白即可
+
 [MiniVue v0.1](https://github.com/woai3c/mini-vue/tree/v0.1)
 
 [学习Vue源码推荐看这篇文章](http://hcysun.me/vue-design/zh/essence-of-comp.html#%E7%BB%84%E4%BB%B6%E7%9A%84%E4%BA%A7%E5%87%BA%E6%98%AF%E4%BB%80%E4%B9%88)
